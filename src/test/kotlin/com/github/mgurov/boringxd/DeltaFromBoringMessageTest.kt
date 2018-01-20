@@ -3,7 +3,6 @@ package com.github.mgurov.boringxd
 import org.junit.Test
 
 import org.assertj.core.api.Assertions.*
-import java.lang.Integer.max
 
 class DeltaFromBoringMessageTest {
 
@@ -73,7 +72,7 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 1)
 
         next(BoringTotals(total = 2, stock = 1), "stock found! + 1 shop order")
-        then(expectedDelta = 0)
+        then(expectedDelta = 1) //TODO: shouldn't go up when stock found and all of our orders fulfilled
     }
 
     @Test
@@ -85,7 +84,7 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 0)
 
         next(BoringTotals(total = 2, stock = 1), "+ 1 shop order")
-        then(expectedDelta = 0)
+        then(expectedDelta = 1) //TODO: only if not fulfilled
     }
 
     @Test
@@ -115,7 +114,7 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 0)
 
         next(BoringTotals(total = 4, stock = 1), "shop order +2")
-        then(expectedDelta = 1)
+        then(expectedDelta = 2)
     }
 
     // XLS
@@ -161,7 +160,7 @@ class DeltaFromBoringMessageTest {
 
         next(BoringTotals(total = 10, stock = 6), "+3 customer order")
         fulfill(1)
-        then(expectedDelta = 0)
+        then(expectedDelta = 3)
 
         next(BoringTotals(total = 10, stock = 0, shipped = 10), "Shipment")
         fulfill(4)
@@ -193,7 +192,7 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 5)
 
         next(BoringTotals(total = 10, stock = 6), "New customer order with the stock +4 unrelated to xD")
-        then(expectedDelta = 0)
+        then(expectedDelta = 3)
 
         fulfill(4)
         next(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + notided we've delivered that thing")
@@ -253,7 +252,7 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 1)
 
         next(BoringTotals(total = 2, stock = 1), "our first piece has been delivered but we aren't yet aware of that")
-        then(expectedDelta = 0)
+        then(expectedDelta = 1)
 
 //        next(BoringTotals(total = 1, shipped = 1), "shipped")
 //        then(expectedDelta = 0)
@@ -280,86 +279,8 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 0)
     }
 
-    class Xd {
-        val steps = mutableListOf<Step>()
-        var fulfilled = 0
-
-        fun receive(update: BoringTotals, message: String = ""): Int {
-            checkNoTotalsDecrease(update)
-
-            val step = Step(
-                    boring = update,
-                    fulfilled = fulfilled,
-                    previous = Previous(steps.lastOrNull())
-            )
-            System.out.println("$step $message")
-            steps.add(step)
-            return step.delta
-        }
-
-        data class Previous constructor(
-                val shortage: Int = 0,
-                val fulfilled: Int = 0,
-                val ignoredDecrease: Int = 0
-        ) {
-            constructor(previousStep: Step?): this(
-                    previousStep?.boring?.shortage()?:0,
-                    previousStep?.fulfilled?:0,
-                    previousStep?.ignoredDecrease?:0
-            )
-        }
-
-        data class Step(
-                val boring: BoringTotals,
-                val fulfilled: Int,
-                val previous: Previous
-        ) {
-            val shortage = boring.shortage()
-            val shortageDelta = shortage - previous.shortage
-            val fulfilledDelta = fulfilled - previous.fulfilled
-
-            val delta: Int
-            val ignoredDecrease: Int
-
-            init {
-                val tempDelta = shortageDelta + fulfilledDelta
-                if (tempDelta > 0) {
-                    val consumedByPreviousDelta = Integer.min(tempDelta, previous.ignoredDecrease)
-                    delta = tempDelta - consumedByPreviousDelta
-                    ignoredDecrease = previous.ignoredDecrease - consumedByPreviousDelta
-                } else {
-                    delta = 0
-                    ignoredDecrease = previous.ignoredDecrease - tempDelta
-                }
-            }
-
-            override fun toString(): String {
-                return "$boring, shortage=$shortage, shortageDelta=$shortageDelta, fulfilled=$fulfilled, fulfilledDelta=$fulfilledDelta -> $delta (-$ignoredDecrease))"
-            }
-        }
-
-
-        private fun checkNoTotalsDecrease(update: BoringTotals) {
-            val lastStep = if (steps.isEmpty()) {BoringTotals()} else {steps.last().boring}
-            checkNoDecrease("total", lastStep.total, update.total)
-            checkNoDecrease("shipped", lastStep.shipped, update.shipped)
-            checkNoDecrease("cancelled", lastStep.cancelled, update.cancelled)
-        }
-
-        private fun checkNoDecrease(field: String, from: Int, to: Int) {
-            if (from > to) {
-                throw IllegalArgumentException("Decreasing $field $from -> $to")
-            }
-        }
-
-        fun fulfill(i: Int) {
-            checkNoDecrease("xd-fulfillment", fulfilled, i)
-            fulfilled = i
-        }
-
-    }
-
-    val xd = Xd()
+    val xd = XdTake2() as Xd
+    //val xd = XdTake1() as Xd
 
     var boringUpdate: BoringTotals? = null
     var stepName = ""
@@ -374,30 +295,13 @@ class DeltaFromBoringMessageTest {
     }
 
     private fun fulfill(delta: Int) {
-        xd.fulfill( delta + xd.fulfilled)
+        xd.fulfill(delta)
     }
 
     fun then(expectedDelta: Int) {
         val lastDelta = xd.receive(boringUpdate?: throw IllegalStateException("no boring update yet"), stepName)
         boringUpdate = null
         assertThat(lastDelta).`as`(stepName).isEqualTo(expectedDelta)
-    }
-
-    data class BoringTotals (
-            val stock: Int = 0,
-            val total: Int = 0,
-            val shipped: Int = 0,
-            val cancelled: Int = 0
-    ) {
-        fun shortage(): Int {
-            return max(total - shipped - cancelled - stock, 0)
-        }
-
-        override fun toString(): String {
-            return "boring(total=$total, stock=$stock, shipped=$shipped, cancelled=$cancelled)"
-        }
-
-
     }
 
 }

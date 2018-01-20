@@ -2,14 +2,12 @@ package com.github.mgurov.boringxd
 
 class XdTake2 : Xd {
     private val steps = mutableListOf<Step>()
-    private var fulfilled = 0
 
     override fun receive(update: BoringTotals, message: String): Int {
         checkNoTotalsDecrease(update)
 
         val step = Step(
                 boring = update,
-                fulfilled = fulfilled,
                 previous = Previous(steps.lastOrNull())
         )
         System.out.println("$step $message")
@@ -21,9 +19,7 @@ class XdTake2 : Xd {
         if (delta < 0) {
             throw IllegalArgumentException("delta should be positive but got $delta")
         }
-        fulfilled += delta
     }
-
 
     data class Previous constructor(
             val total: Int,
@@ -37,7 +33,6 @@ class XdTake2 : Xd {
 
     data class Step(
             val boring: BoringTotals,
-            val fulfilled: Int,
             val previous: Previous
     ) {
         val coverLostStock: Int

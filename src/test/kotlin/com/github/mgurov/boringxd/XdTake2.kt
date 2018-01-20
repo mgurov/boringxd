@@ -4,7 +4,7 @@ class XdTake2 : Xd {
     private val steps = mutableListOf<Step>()
 
     override fun receive(update: BoringTotals, message: String): Int {
-        checkNoTotalsDecrease(update)
+        checkTotalsDoNotDecrease(steps.lastOrNull()?.boring, update)
 
         val step = Step(
                 boring = update,
@@ -19,55 +19,52 @@ class XdTake2 : Xd {
         if (delta < 0) {
             throw IllegalArgumentException("delta should be positive but got $delta")
         }
+        //NB: this implementation doesn't care about the status of xd's
     }
 
-    data class Previous constructor(
-            val total: Int,
-            val supply: Int
-    ) {
-        constructor(previousStep: Step?) : this(
-                total = previousStep?.boring?.total ?: 0,
-                supply = previousStep?.boring?.supply() ?: 0
-        )
-    }
+}
 
-    data class Step(
-            val boring: BoringTotals,
-            val previous: Previous
-    ) {
-        val coverLostStock: Int
-        val coverNewRequests: Int
-        val delta: Int
+// a.k.a memory - what do we need to remember from the previous update
+data class Previous constructor(
+        val total: Int,
+        val supply: Int
+) {
+    constructor(previousStep: Step?) : this(
+            total = previousStep?.boring?.total ?: 0,
+            supply = previousStep?.boring?.supply() ?: 0
+    )
+}
 
-        init {
+data class Step(
+        val boring: BoringTotals,
+        val previous: Previous
+) {
+    val coverLostStock: Int
+    val coverNewRequests: Int
+    val delta: Int
 
-            val currentSupply = boring.supply()
+    init {
 
-            if (previous.supply > currentSupply && currentSupply < previous.total) {
-                //stock lost and it affects previously assumed to be enough
-                coverLostStock = Integer.min(previous.total, previous.supply) - currentSupply
-            } else {
-                coverLostStock = 0
-            }
+        val currentSupply = boring.supply()
 
-            val newRequests = boring.total - previous.total
-            if (newRequests < 0) {
-                throw IllegalStateException("Unexpected negative requests $newRequests")
-            }
-
-            coverNewRequests = Math.min(newRequests, boring.shortage())
-
-            delta = coverLostStock + coverNewRequests
+        if (previous.supply > currentSupply && currentSupply < previous.total) {
+            //stock lost and it affects previously assumed to be enough
+            coverLostStock = Integer.min(previous.total, previous.supply) - currentSupply
+        } else {
+            coverLostStock = 0
         }
 
-        override fun toString(): String {
-            return "$boring, previous=$previous, coverLostStock=$coverLostStock, coverNewRequests=$coverNewRequests, delta=$delta"
+        val newRequests = boring.total - previous.total
+        if (newRequests < 0) {
+            throw IllegalStateException("Unexpected negative requests $newRequests")
         }
+
+        coverNewRequests = Math.min(newRequests, boring.shortage())
+
+        delta = coverLostStock + coverNewRequests
     }
 
-
-    private fun checkNoTotalsDecrease(update: BoringTotals) {
-        checkTotalsDoNotDecrease(steps.lastOrNull()?.boring, update)
+    override fun toString(): String {
+        return "$boring, previous=$previous, coverLostStock=$coverLostStock, coverNewRequests=$coverNewRequests, delta=$delta"
     }
-
 }

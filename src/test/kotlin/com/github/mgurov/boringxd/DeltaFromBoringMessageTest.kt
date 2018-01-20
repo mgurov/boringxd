@@ -107,7 +107,7 @@ class DeltaFromBoringMessageTest {
     @Test
     fun `fluctuation down remembered and taken into account later`() {
 
-        whenMessage(BoringTotals(total = 2, stock = 0), "shop order + 1 no stock yet")
+        whenMessage(BoringTotals(total = 2, stock = 0), "shop order + 2 no stock yet")
         then(expectedDelta = 2)
 
         whenMessage(BoringTotals(total = 2, stock = 1), "stock went up")
@@ -116,6 +116,22 @@ class DeltaFromBoringMessageTest {
         whenMessage(BoringTotals(total = 4, stock = 1), "shop order +2")
         then(expectedDelta = 2)
     }
+
+    @Test
+    fun `sanity check we get lots of stuff`() {
+        whenMessage(BoringTotals(total = 2, stock = 0), "shop order + 2 no stock yet")
+        then(expectedDelta = 2)
+
+        whenMessage(BoringTotals(total = 2, stock = 10), "stock went up")
+        then(expectedDelta = 0)
+
+        whenMessage(BoringTotals(total = 15, stock = 10), "shop order +13")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 15, stock = 100), "stop up again")
+        then(expectedDelta = 0)
+    }
+
     // XLS
 
     @Test

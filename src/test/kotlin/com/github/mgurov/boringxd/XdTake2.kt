@@ -40,7 +40,15 @@ class XdTake2 : Xd {
         val delta: Int
 
         init {
-            coverLostStock = Math.max(previous.supply - boring.supply(), 0)
+
+            val currentSupply = boring.supply()
+
+            if (previous.supply > currentSupply && currentSupply < previous.total) {
+                //stock lost and it affects previously assumed to be enough
+                coverLostStock = Integer.min(previous.total, previous.supply) - currentSupply
+            } else {
+                coverLostStock = 0
+            }
 
             val newRequests = boring.total - previous.total
             if (newRequests < 0) {

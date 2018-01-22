@@ -45,7 +45,8 @@ Feature: xd delta based on a sequence of boring messages
       | total | stock | shipped | delta | description                    |
       | 7     | 2     |         | 5     | new customer order             |
       | 7     | 2     | 2       | 0     | shipment bypassing stock       |
-      | 10    | 0     | 10      | 0     | customer order +3 shipment + 2 |
+      | 10    | 0     | 4       | 3     | customer order +3 shipment + 2 |
+      | 10    | 0     | 10      | 0     | final shipment |
 
   Scenario: Received goods not registered yet
     Then ∆'s are:

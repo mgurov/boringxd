@@ -371,6 +371,20 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 0)
     }
 
+
+    @Test
+    fun `stock fluctuation`() {
+
+        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 7, stock = 4), "stock fluctuation +2")
+        then(expectedDelta = 0)
+
+        whenMessage(BoringTotals(total = 7, stock = 2), "stock fluctuation back -2")
+        then(expectedDelta = 0)
+    }
+
     val xd = XdTake2() as Xd
     //val xd = XdTake1() as Xd
 

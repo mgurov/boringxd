@@ -50,24 +50,34 @@ data class Step(
 
         val currentSupply = boring.supply()
 
+
+        val prevSupplyCapped = Integer.min(previous.total, previous.supply)
+        val newSupplyCapped = Integer.min(previous.total, currentSupply)
+        val supplyCappedDelta = newSupplyCapped - prevSupplyCapped
+        val newAmortizationDelta = supplyCappedDelta
+        var currentTotalAmmortization = previous.swallowedSupplyFluctuation + newAmortizationDelta
+
+
         val previouslyFulfilledLevel = Integer.min(previous.total, previous.supply)
-        val swallowedSupplyFluctuationDelta: Int
         if (previous.supply > currentSupply) {
             if (currentSupply < previous.total) {
                 val dropInSupply = previouslyFulfilledLevel - currentSupply
-                val amortizedDrop = Integer.min(dropInSupply, previous.swallowedSupplyFluctuation)
+                val amortizedDrop = if (currentTotalAmmortization > 0) {
+                    Integer.min(dropInSupply, currentTotalAmmortization)
+                } else {
+                    0
+                }
+
                 //stock lost and it affects previously assumed to be enough
                 coverLostStock = dropInSupply - amortizedDrop
-                swallowedSupplyFluctuationDelta = -amortizedDrop
+                currentTotalAmmortization = -amortizedDrop
             } else {
                 coverLostStock = 0
-                swallowedSupplyFluctuationDelta = 0
             }
         } else {
-            swallowedSupplyFluctuationDelta = Integer.max(0,  Integer.min(currentSupply, previous.total) - previouslyFulfilledLevel)
             coverLostStock = 0
         }
-        swallowedSupplyFluctuation = previous.swallowedSupplyFluctuation + swallowedSupplyFluctuationDelta
+        swallowedSupplyFluctuation = currentTotalAmmortization
 
         val newRequests = boring.total - previous.total
         if (newRequests < 0) {

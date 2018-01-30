@@ -371,7 +371,6 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 0)
     }
 
-
     @Test
     fun `stock fluctuation`() {
 

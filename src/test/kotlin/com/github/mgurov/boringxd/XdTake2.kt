@@ -64,7 +64,7 @@ data class Step(
                 swallowedSupplyFluctuationDelta = 0
             }
         } else {
-            swallowedSupplyFluctuationDelta = Integer.max(0, currentSupply - previouslyFulfilledLevel)
+            swallowedSupplyFluctuationDelta = Integer.max(0,  Integer.min(currentSupply, previous.total) - previouslyFulfilledLevel)
             coverLostStock = 0
         }
         swallowedSupplyFluctuation = previous.swallowedSupplyFluctuation + swallowedSupplyFluctuationDelta

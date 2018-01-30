@@ -63,9 +63,9 @@ Feature: xd delta based on a sequence of boring messages
       | 10    | 0     |         | 5     | New customer order + 3 stock -2 |
       | 10    | 0     | 10      | 0     | final shipment                  |
 
-  Scenario: timings - not nice
+  Scenario: increases and then back decreases
     Then ∆'s are:
       | total | stock | shipped | delta | description                       |
       | 7     | 2     |         | 5     | New customer order                |
       | 10    | 2     | 6       | 2     | New customer order + 3 shipped +6 |
-      | 10    | 0     | 6       | 2     | final shipment                    |
+      | 10    | 0     | 6       | 1     | final shipment                    |

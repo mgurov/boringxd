@@ -1,5 +1,6 @@
 package com.github.mgurov.boringxd
 
+import com.github.mgurov.boringxd.take2a.XdTake2Amortized
 import org.junit.Test
 
 import org.assertj.core.api.Assertions.*
@@ -405,7 +406,7 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 0)
     }
 
-    val xd = XdTake2() as Xd
+    val xd = XdTake2Amortized() as Xd
     //val xd = XdTake1() as Xd
 
     var boringUpdate: BoringTotals? = null

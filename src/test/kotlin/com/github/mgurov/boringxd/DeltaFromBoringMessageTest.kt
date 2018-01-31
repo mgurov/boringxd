@@ -390,6 +390,15 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 1)
     }
 
+    @Test
+    fun `should not buy anything upon stock fluctuations for the already requested PA's`() {
+        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 7, stock = 0), "stock fluctuation -2")
+        then(expectedDelta = 2)
+    }
+
     val xd = XdTake2() as Xd
     //val xd = XdTake1() as Xd
 

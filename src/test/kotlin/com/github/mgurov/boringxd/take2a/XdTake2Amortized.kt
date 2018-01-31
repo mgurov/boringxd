@@ -1,6 +1,10 @@
-package com.github.mgurov.boringxd
+package com.github.mgurov.boringxd.take2a
 
-class XdTake2 : Xd {
+import com.github.mgurov.boringxd.BoringTotals
+import com.github.mgurov.boringxd.Xd
+import com.github.mgurov.boringxd.checkTotalsDoNotDecrease
+
+class XdTake2Amortized : Xd {
     private val steps = mutableListOf<Step>()
 
     override fun receive(update: BoringTotals, message: String): Int {
@@ -27,11 +31,13 @@ class XdTake2 : Xd {
 // a.k.a memory - what do we need to remember from the previous update
 data class Previous constructor(
         val total: Int,
-        val supply: Int
+        val supply: Int,
+        val swallowedSupplyFluctuation: Int
 ) {
     constructor(previousStep: Step?) : this(
             total = previousStep?.boring?.total ?: 0,
-            supply = previousStep?.boring?.supply() ?: 0
+            supply = previousStep?.boring?.supply() ?: 0,
+            swallowedSupplyFluctuation = previousStep?.swallowedSupplyFluctuation ?: 0
     )
 }
 
@@ -42,17 +48,40 @@ data class Step(
     val coverLostStock: Int
     val coverNewRequests: Int
     val delta: Int
+    val swallowedSupplyFluctuation: Int
 
     init {
 
         val currentSupply = boring.supply()
 
-        if (previous.supply > currentSupply && currentSupply < previous.total) {
-            //stock lost and it affects previously assumed to be enough
-            coverLostStock = Integer.min(previous.total, previous.supply) - currentSupply
+
+        val prevSupplyCapped = Integer.min(previous.total, previous.supply)
+        val newSupplyCapped = Integer.min(previous.total, currentSupply)
+        val supplyCappedDelta = newSupplyCapped - prevSupplyCapped
+        val newAmortizationDelta = supplyCappedDelta
+        var currentTotalAmmortization = previous.swallowedSupplyFluctuation + newAmortizationDelta
+
+
+        val previouslyFulfilledLevel = Integer.min(previous.total, previous.supply)
+        if (previous.supply > currentSupply) {
+            if (currentSupply < previous.total) {
+                val dropInSupply = previouslyFulfilledLevel - currentSupply
+                val amortizedDrop = if (currentTotalAmmortization > 0) {
+                    Integer.min(dropInSupply, currentTotalAmmortization)
+                } else {
+                    0
+                }
+
+                //stock lost and it affects previously assumed to be enough
+                coverLostStock = dropInSupply - amortizedDrop
+                currentTotalAmmortization = -amortizedDrop
+            } else {
+                coverLostStock = 0
+            }
         } else {
             coverLostStock = 0
         }
+        swallowedSupplyFluctuation = currentTotalAmmortization
 
         val newRequests = boring.total - previous.total
         if (newRequests < 0) {

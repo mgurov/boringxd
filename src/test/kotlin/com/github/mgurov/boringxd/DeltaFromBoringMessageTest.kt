@@ -397,6 +397,12 @@ class DeltaFromBoringMessageTest {
 
         whenMessage(BoringTotals(total = 7, stock = 0), "stock fluctuation -2")
         then(expectedDelta = 2)
+
+        whenMessage(BoringTotals(total = 7, stock = 7), "stock fluctuation +7")
+        then(expectedDelta = 0)
+
+        whenMessage(BoringTotals(total = 7, stock = 0), "stock fluctuation -7 should've already covered all")
+        then(expectedDelta = 0)
     }
 
     val xd = XdTake2() as Xd

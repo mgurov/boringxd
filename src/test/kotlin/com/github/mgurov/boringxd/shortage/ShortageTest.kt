@@ -352,7 +352,7 @@ class ShortageTest {
 
         fulfill(4)
         whenMessage(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + noticed we've delivered that thing")
-        then(expectedDelta = -4)
+        then(expectedPositiveDelta = 0)
 
         fulfill(4)
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
@@ -393,7 +393,7 @@ class ShortageTest {
         xd.fulfill(delta)
     }
 
-    fun then(expectedDelta: Int, skipShortageCheck: Boolean = false) {
+    fun then(expectedPositiveDelta: Int? = null, expectedDelta: Int? = null, skipShortageCheck: Boolean = false) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
         val lastDelta = xd.receive(update, stepName)
         if (!skipShortageCheck) {
@@ -402,7 +402,12 @@ class ShortageTest {
         totalPurchased += lastDelta
         assertThat(totalPurchased).`as`("Should not order more than total orders").isLessThanOrEqualTo(update.total)
         boringUpdate = null
-        assertThat(lastDelta).`as`(stepName).isEqualTo(expectedDelta)
+        if (expectedDelta != null) {
+            assertThat(lastDelta).`as`(stepName).isEqualTo(expectedDelta)
+        }
+        if (expectedPositiveDelta != null) {
+            assertThat(Integer.max(0, lastDelta)).`as`(stepName).isEqualTo(expectedPositiveDelta)
+        }
     }
 
 }

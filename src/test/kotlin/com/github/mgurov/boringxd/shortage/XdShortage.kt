@@ -33,12 +33,14 @@ class XdShortage : Xd {
 data class Previous constructor(
         val shipped: Int,
         val stock: Int,
-        val totalCrossdocked: Int
+        val totalCrossdocked: Int,
+        val absent: Boolean //TODO: means we should indeed reset.
 ){
     constructor(previousStep: Step?) : this(
             shipped = previousStep?.boring?.shipped ?: 0,
             stock = previousStep?.boring?.stock ?: 0,
-            totalCrossdocked = (previousStep?.delta?: 0) + (previousStep?.previous?.totalCrossdocked?: 0)
+            totalCrossdocked = (previousStep?.delta?: 0) + (previousStep?.previous?.totalCrossdocked?: 0),
+            absent = previousStep == null
     )
 }
 
@@ -60,15 +62,20 @@ data class Step(
         val shortage = boring.rawShortage()
         require(shortage >= 0) {"Shortage should be strictly positive here but got ${shortage}"}
 
-        val deltaShipped = boring.shipped - previous.shipped;
-        val deltaStock = boring.stock - previous.stock;
+        if (previous.absent) {
+            delta = shortage
+        } else {
+            val deltaShipped = boring.shipped - previous.shipped;
+            val deltaStock = boring.stock - previous.stock;
 
 
-        //TODO: increase previous.totalCrossDock by delta
+            //TODO: increase previous.totalCrossDock by delta
 
-        val deltaSupply = Integer.max(0, deltaShipped + deltaStock)
+            val deltaSupply = Integer.max(0, deltaShipped + deltaStock)
 
-        delta =  shortage - previous.totalCrossdocked + deltaSupply
+            delta =  shortage - previous.totalCrossdocked + deltaSupply
+        }
+
     }
 
     override fun toString(): String {

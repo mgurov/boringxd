@@ -287,7 +287,7 @@ class ShortageTest {
 
         whenMessage(BoringTotals(total = 10, stock = 2, shipped = 5), "Shipment")
         fulfill(1)
-        then(expectedDelta = 0)
+        then(expectedPositiveDelta = 0)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
         fulfill(3)

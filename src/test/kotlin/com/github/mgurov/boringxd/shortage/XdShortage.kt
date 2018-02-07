@@ -57,7 +57,8 @@ data class Step(
 
     init {
 
-        val shortage = boring.shortage()
+        val shortage = boring.rawShortage()
+        require(shortage >= 0) {"Shortage should be strictly positive here but got ${shortage}"}
 
         val deltaShipped = boring.shipped - previous.shipped;
         val deltaStock = boring.stock - previous.stock;

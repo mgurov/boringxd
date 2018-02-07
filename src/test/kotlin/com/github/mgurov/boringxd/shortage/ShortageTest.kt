@@ -21,7 +21,7 @@ class ShortageTest {
     @Test
     fun `existing stock 2`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 2), "shop order + 1")
+        whenMessage(BoringTotals(total = 1, stock = 1), "shop order + 1")
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 2, stock = 2), "shop order + 1")

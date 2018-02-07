@@ -116,7 +116,7 @@ class ShortageTest {
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 4, stock = 1), "shop order +2")
-        then(expectedDelta = 2)
+        then(expectedDelta = 1)
     }
 
     @Test

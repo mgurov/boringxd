@@ -34,7 +34,13 @@ data class Previous constructor(
         val shipped: Int,
         val stock: Int,
         val totalCrossdocked: Int
-)
+){
+    constructor(previousStep: Step?) : this(
+            shipped = previousStep?.boring?.shipped ?: 0,
+            stock = previousStep?.boring?.stock ?: 0,
+            totalCrossdocked = (previousStep?.delta?: 0) + (previousStep?.previous?.totalCrossdocked?: 0)
+    )
+}
 
 //data class Shortage(val shortageAdvice: Int) {
 //    constructor(totals: BoringTotals): this(

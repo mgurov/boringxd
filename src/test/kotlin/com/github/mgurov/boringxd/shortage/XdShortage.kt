@@ -57,7 +57,7 @@ data class Step(
 
     init {
 
-        val shortage = boring.rawShortage()
+        val shortage = boring.shortage()
 
         val deltaShipped = boring.shipped - previous.shipped;
         val deltaStock = boring.stock - previous.stock;

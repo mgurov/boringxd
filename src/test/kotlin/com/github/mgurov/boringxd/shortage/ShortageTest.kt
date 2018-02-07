@@ -393,10 +393,12 @@ class ShortageTest {
         xd.fulfill(delta)
     }
 
-    fun then(expectedDelta: Int) {
+    fun then(expectedDelta: Int, skipShortageCheck: Boolean = false) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
         val lastDelta = xd.receive(update, stepName)
-        assertThat(lastDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
+        if (!skipShortageCheck) {
+            assertThat(lastDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
+        }
         totalPurchased += lastDelta
         assertThat(totalPurchased).`as`("Should not order more than total orders").isLessThanOrEqualTo(update.total)
         boringUpdate = null

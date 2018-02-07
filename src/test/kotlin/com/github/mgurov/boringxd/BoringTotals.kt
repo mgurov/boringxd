@@ -7,7 +7,11 @@ data class BoringTotals(
         val cancelled: Int = 0
 ) {
     fun shortage(): Int {
-        return Integer.max(total - supply(), 0)
+        return Integer.max(rawShortage(), 0)
+    }
+
+    fun rawShortage(): Int {
+        return total - supply()
     }
 
     override fun toString(): String {

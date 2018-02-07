@@ -199,7 +199,7 @@ class ShortageTest {
 
     @Test
     fun `same stock still no shortage`() {
-        whenMessage(BoringTotals(total = 2, stock = 5), "no shortage")
+        whenMessage(BoringTotals(total = 2, stock = 2), "no shortage")
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 5, stock = 5), "no shortage")

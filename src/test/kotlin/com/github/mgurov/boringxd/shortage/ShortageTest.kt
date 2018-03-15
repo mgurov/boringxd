@@ -400,7 +400,6 @@ class ShortageTest {
     }
 
     private fun fulfill(delta: Int) {
-        xd.fulfill(delta)
     }
 
     fun then(expectedPositiveDelta: Int? = null,

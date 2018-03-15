@@ -387,8 +387,7 @@ class DeltaFromBoringMessageTest {
         }
     }
 
-    private fun fulfill(delta: Int) {
-        xd.fulfill(delta)
+    private fun fulfill(ignore: Int) {
     }
 
     fun then(expectedDelta: Int) {

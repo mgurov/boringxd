@@ -20,13 +20,6 @@ class XdShortage : Xd {
         return step.delta
     }
 
-    override fun fulfill(delta: Int) {
-        if (delta < 0) {
-            throw IllegalArgumentException("delta should be positive but got $delta")
-        }
-        //NB: this implementation doesn't care about the status of xd's
-    }
-
 }
 
 // a.k.a memory - what do we need to remember from the previous update

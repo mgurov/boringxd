@@ -1,9 +1,7 @@
 package com.github.mgurov.boringxd
 
 interface Xd {
-    fun fulfill(delta: Int)
     fun receive(update: BoringTotals, message: String): Int
-
 }
 
 fun checkTotalsDoNotDecrease(lastBoringMaybe: BoringTotals?, update: BoringTotals) {

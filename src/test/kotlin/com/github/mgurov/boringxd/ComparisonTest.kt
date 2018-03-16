@@ -85,7 +85,6 @@ class ComparisonTest {
         whenMessage(BoringTotals(total = 10, stock = 6), "New customer order with the stock +4 unrelated to xD")
         then(expectedDelta = 3)
 
-        fulfill(4)
         whenMessage(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + noticed we've delivered that thing")
         then(expectedDelta = 0)
 

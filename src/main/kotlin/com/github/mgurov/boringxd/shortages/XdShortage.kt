@@ -10,9 +10,8 @@ class XdShortage : Xd {
     override fun receive(update: BoringTotals, message: String): Int {
         checkTotalsDoNotDecrease(steps.lastOrNull()?.boring, update)
 
-        val step = Step(
+        val step = makeNextStep(
             boring = update,
-
             previous = Previous(steps.lastOrNull())
         )
         System.out.println("$step $message")
@@ -39,32 +38,38 @@ data class Previous constructor(
 
 data class Step(
         val boring: BoringTotals,
-        val previous: Previous
+        val previous: Previous,
+        val delta: Int
+
 ) {
-    val delta: Int
-
-    init {
-
-        val shortage = boring.rawShortage()
-        require(shortage >= 0) {"Shortage should be strictly positive here but got ${shortage}"}
-
-        if (previous.absent || shortage == 0) {
-            delta = shortage
-        } else {
-            val deltaShipped = boring.shipped - previous.shipped;
-            val deltaStock = boring.stock - previous.stock;
-
-
-            //TODO: increase previous.totalCrossDock by delta
-
-            val deltaSupply = Integer.max(0, deltaShipped + deltaStock)
-
-            delta =  shortage - previous.totalCrossdocked + deltaSupply
-        }
-
-    }
-
     override fun toString(): String {
         return "$boring, previous=$previous, delta=$delta"
     }
+}
+
+fun makeNextStep(
+    boring: BoringTotals,
+    previous: Previous
+) : Step {
+
+    val shortage = boring.rawShortage()
+    require(shortage >= 0) { "Shortage should be strictly positive here but got ${shortage}" }
+
+    val delta: Int
+
+    if (previous.absent || shortage == 0) {
+        delta = shortage
+    } else {
+        val deltaShipped = boring.shipped - previous.shipped;
+        val deltaStock = boring.stock - previous.stock;
+
+
+        //TODO: increase previous.totalCrossDock by delta
+
+        val deltaSupply = Integer.max(0, deltaShipped + deltaStock)
+
+        delta = shortage - previous.totalCrossdocked + deltaSupply
+    }
+
+    return Step(boring, previous, delta)
 }

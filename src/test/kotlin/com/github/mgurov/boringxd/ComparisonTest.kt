@@ -1,6 +1,7 @@
 package com.github.mgurov.boringxd
 
 import com.github.mgurov.boringxd.deltas.XdTake2
+import com.github.mgurov.boringxd.shortages.XdShortage
 import org.junit.Test
 
 import org.assertj.core.api.Assertions.*
@@ -108,10 +109,10 @@ class ComparisonTest {
     }
 
     val deltas = XdTake2() as Xd
+    val shortages = XdShortage() as Xd
 
     var boringUpdate: BoringTotals? = null
     var stepName = ""
-    var totalPurchased = 0
 
     fun whenMessage(update: BoringTotals, message: String = "") {
         if (boringUpdate == null) {
@@ -127,12 +128,18 @@ class ComparisonTest {
 
     fun then(expectedDelta: Int) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
+        assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
         val lastDelta = deltas.receive(update, stepName)
-        assertThat(lastDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
+        val lastShortage = deltas.receive(update, stepName)
+
+/*TODO: do we need these?
         totalPurchased += lastDelta
         assertThat(totalPurchased).`as`("Should not order more than total orders").isLessThanOrEqualTo(update.total)
+*/
         boringUpdate = null
-        assertThat(lastDelta).`as`(stepName).isEqualTo(expectedDelta)
+        assertThat(lastDelta).`as`(stepName + " - deltas").isEqualTo(expectedDelta)
+        assertThat(lastDelta).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
     }
 
+    var totalPurchased = 0
 }

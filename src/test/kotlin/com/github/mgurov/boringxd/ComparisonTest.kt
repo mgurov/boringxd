@@ -36,11 +36,10 @@ class ComparisonTest {
         then(expectedDelta = 5)
 
         whenMessage(BoringTotals(total = 7, stock = 2, cancelled = 3), "Cancel 3 of customer order")
-        then(expectedDelta = 0) //TODO: -3 w/cancellation
+        then(expectedDelta = 0, withCancellations=-3) //TODO: -3 w/cancellation
 
-        whenMessage(BoringTotals(total = 7, stock = 0, cancelled = 3, shipped = 4), "Shipment")
-        fulfill(2)
-        then(expectedDelta = 0)
+        whenMessage(BoringTotals(total = 9, stock = 2, cancelled = 3, shipped = 3), "Shipment")
+        then(expectedDelta = 1)
     }
 
     @Test
@@ -125,9 +124,9 @@ class ComparisonTest {
     private fun fulfill(ignore: Int) {
     }
 
-    fun then(expectedDelta: Int) {
+    fun then(expectedDelta: Int, withCancellations: Int? = null) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
-        assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
+        //assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
         val lastDelta = deltas.receive(update, stepName)
         val lastShortage = shortages.receive(update, stepName)
 
@@ -137,7 +136,11 @@ class ComparisonTest {
 */
         boringUpdate = null
         assertThat(lastDelta).`as`(stepName + " - deltas").isEqualTo(expectedDelta)
-        assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
+        if (withCancellations == null) {
+            assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
+        } else {
+            assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(withCancellations)
+        }
     }
 
     var totalPurchased = 0

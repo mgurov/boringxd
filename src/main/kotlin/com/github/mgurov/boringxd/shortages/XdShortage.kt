@@ -1,4 +1,4 @@
-package com.github.mgurov.boringxd.shortage
+package com.github.mgurov.boringxd.shortages
 
 import com.github.mgurov.boringxd.BoringTotals
 import com.github.mgurov.boringxd.Xd
@@ -11,9 +11,9 @@ class XdShortage : Xd {
         checkTotalsDoNotDecrease(steps.lastOrNull()?.boring, update)
 
         val step = Step(
-                boring = update,
+            boring = update,
 
-                previous = Previous(steps.lastOrNull())
+            previous = Previous(steps.lastOrNull())
         )
         System.out.println("$step $message")
         steps.add(step)

@@ -1,7 +1,7 @@
 package com.github.mgurov.boringxd.cuceglue
 
 import com.github.mgurov.boringxd.BoringTotals
-import com.github.mgurov.boringxd.XdTake2
+import com.github.mgurov.boringxd.deltas.XdTake2
 import cucumber.api.DataTable
 import cucumber.api.java8.En
 import org.assertj.core.api.Assertions.assertThat

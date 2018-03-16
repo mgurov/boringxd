@@ -1,13 +1,12 @@
-package com.github.mgurov.boringxd.shortage
+package com.github.mgurov.boringxd.deltas
 
 import com.github.mgurov.boringxd.BoringTotals
 import com.github.mgurov.boringxd.Xd
 import org.junit.Test
 
 import org.assertj.core.api.Assertions.*
-import org.junit.Ignore
 
-class ShortageTest {
+class DeltaFromBoringMessageTest {
 
     @Test
     fun `normal flow`() {
@@ -22,7 +21,7 @@ class ShortageTest {
     @Test
     fun `existing stock 2`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 1), "shop order + 1")
+        whenMessage(BoringTotals(total = 1, stock = 2), "shop order + 1")
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 2, stock = 2), "shop order + 1")
@@ -79,7 +78,6 @@ class ShortageTest {
     }
 
     @Test
-    @Ignore
     fun `stock fluctuation up breakdown`() {
         whenMessage(BoringTotals(total = 1, stock = 0), "shop order + 1")
         then(expectedDelta = 1)
@@ -105,7 +103,7 @@ class ShortageTest {
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 2, stock = 1), "+ 1 shop order")
-        then(expectedDelta = 1, actualDelta = 0)
+        then(expectedDelta = 1)
     }
 
     @Test
@@ -118,11 +116,10 @@ class ShortageTest {
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 4, stock = 1), "shop order +2")
-        then(expectedDelta = 2, actualDelta = 1)
+        then(expectedDelta = 2)
     }
 
     @Test
-    @Ignore
     fun `sanity check we get lots of stuff`() {
         whenMessage(BoringTotals(total = 2, stock = 0), "shop order + 2 no stock yet")
         then(expectedDelta = 2)
@@ -138,7 +135,6 @@ class ShortageTest {
     }
 
     @Test
-    @Ignore
     fun `stock lost and isn't enough anymore`() {
         whenMessage(BoringTotals(total = 2, stock = 3), "enough stock")
         then(expectedDelta = 0)
@@ -166,7 +162,6 @@ class ShortageTest {
     }
 
     @Test
-    @Ignore
     fun `stock lost not affecting previous shortage but does the new one`() {
         whenMessage(BoringTotals(total = 2, stock = 4), "no shortage")
         then(expectedDelta = 0)
@@ -177,15 +172,14 @@ class ShortageTest {
 
     @Test
     fun `decrease supply over the demand doesn't affect bottomline`() {
-        whenMessage(BoringTotals(total = 2, stock = 2), "no shortage")
+        whenMessage(BoringTotals(total = 2, stock = 4), "no shortage")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 2, stock = 2), "still no shortage")
+        whenMessage(BoringTotals(total = 2, stock = 3), "still no shortage")
         then(expectedDelta = 0)
     }
 
     @Test
-    @Ignore
     fun `stock found not affecting previous shortage but does the new one`() {
         whenMessage(BoringTotals(total = 2, stock = 3), "no shortage")
         then(expectedDelta = 0)
@@ -195,7 +189,6 @@ class ShortageTest {
     }
 
     @Test
-    @Ignore
     fun `same stock bit more requested`() {
         whenMessage(BoringTotals(total = 2, stock = 3), "no shortage")
         then(expectedDelta = 0)
@@ -206,7 +199,7 @@ class ShortageTest {
 
     @Test
     fun `same stock still no shortage`() {
-        whenMessage(BoringTotals(total = 2, stock = 2), "no shortage")
+        whenMessage(BoringTotals(total = 2, stock = 5), "no shortage")
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 5, stock = 5), "no shortage")
@@ -248,11 +241,10 @@ class ShortageTest {
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 2, shipped = 1), "order +1")
-        then(expectedDelta = 1, actualDelta = 0)
+        then(expectedDelta = 1)
     }
 
     @Test
-    @Ignore
     fun `stop pops boring first delayed noticed xD 2`() {
 
         whenMessage(BoringTotals(total = 1, stock = 0), "customer order +1 -> cdpa")
@@ -268,7 +260,6 @@ class ShortageTest {
 
 
     @Test
-    @Ignore
     fun `should not think overshipped when notified bit late at xD`() {
 
         whenMessage(BoringTotals(total = 1, stock = 0), "customer order +1 -> cdpa")
@@ -296,7 +287,7 @@ class ShortageTest {
 
         whenMessage(BoringTotals(total = 10, stock = 2, shipped = 5), "Shipment")
         fulfill(1)
-        then(expectedPositiveDelta = 0)
+        then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
         fulfill(3)
@@ -304,7 +295,6 @@ class ShortageTest {
     }
 
     @Test
-    @Ignore
     fun `Create cancel ship`() {
 
         whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
@@ -344,7 +334,7 @@ class ShortageTest {
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 4), "customer order + 3 and stock shipped")
-        then(expectedDelta = 3, actualDelta = 1)
+        then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
         fulfill(6)
@@ -362,7 +352,7 @@ class ShortageTest {
 
         fulfill(4)
         whenMessage(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + noticed we've delivered that thing")
-        then(expectedPositiveDelta = 0)
+        then(expectedDelta = 0)
 
         fulfill(4)
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
@@ -383,7 +373,7 @@ class ShortageTest {
         then(expectedDelta = 0)
     }
 
-    val xd = XdShortage() as Xd
+    val xd = XdTake2() as Xd
     //val xd = XdTake1() as Xd
 
     var boringUpdate: BoringTotals? = null
@@ -399,34 +389,17 @@ class ShortageTest {
         }
     }
 
-    private fun fulfill(delta: Int) {
+    private fun fulfill(ignore: Int) {
     }
 
-    fun then(expectedPositiveDelta: Int? = null,
-             expectedDelta: Int? = null,
-             actualDelta: Int? = null,
-             skipShortageCheck: Boolean = false
-    ) {
+    fun then(expectedDelta: Int) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
         val lastDelta = xd.receive(update, stepName)
-        if (!skipShortageCheck) {
-            assertThat(lastDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
-        }
+        assertThat(lastDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
         totalPurchased += lastDelta
         assertThat(totalPurchased).`as`("Should not order more than total orders").isLessThanOrEqualTo(update.total)
         boringUpdate = null
-        if (actualDelta != null && tolerateActual) {
-            assertThat(lastDelta).`as`(stepName).isEqualTo(actualDelta)
-        } else {
-            if (expectedDelta != null) {
-                assertThat(lastDelta).`as`(stepName).isEqualTo(expectedDelta)
-            }
-            if (expectedPositiveDelta != null) {
-                assertThat(Integer.max(0, lastDelta)).`as`(stepName).isEqualTo(expectedPositiveDelta)
-            }
-        }
+        assertThat(lastDelta).`as`(stepName).isEqualTo(expectedDelta)
     }
-
-    val tolerateActual = false
 
 }

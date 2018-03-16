@@ -1,4 +1,8 @@
-package com.github.mgurov.boringxd
+package com.github.mgurov.boringxd.deltas
+
+import com.github.mgurov.boringxd.BoringTotals
+import com.github.mgurov.boringxd.Xd
+import com.github.mgurov.boringxd.checkTotalsDoNotDecrease
 
 class XdTake2 : Xd {
     private val steps = mutableListOf<Step>()
@@ -7,8 +11,8 @@ class XdTake2 : Xd {
         checkTotalsDoNotDecrease(steps.lastOrNull()?.boring, update)
 
         val step = makeNextStep(
-                boring = update,
-                previous = Previous(steps.lastOrNull())
+            boring = update,
+            previous = Previous(steps.lastOrNull())
         )
         System.out.println("$step $message")
         steps.add(step)
@@ -29,11 +33,11 @@ data class Previous constructor(
 }
 
 data class Step(
-        val boring: BoringTotals,
-        val previous: Previous,
-        val coverLostStock: Int,
-        val coverNewRequests: Int,
-        val delta: Int
+    val boring: BoringTotals,
+    val previous: Previous,
+    val coverLostStock: Int,
+    val coverNewRequests: Int,
+    val delta: Int
 ) {
     override fun toString(): String {
         return "$boring, previous=$previous, coverLostStock=$coverLostStock, coverNewRequests=$coverNewRequests, delta=$delta"

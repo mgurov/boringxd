@@ -37,15 +37,8 @@ data class Previous constructor(
     )
 }
 
-//data class Shortage(val shortageAdvice: Int) {
-//    constructor(totals: BoringTotals): this(
-//            shortageAdvice = totals.shortage()
-//    )
-//}
-
 data class Step(
         val boring: BoringTotals,
-//        val shortage: Shortage,
         val previous: Previous
 ) {
     val delta: Int

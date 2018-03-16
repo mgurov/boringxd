@@ -130,7 +130,7 @@ class ComparisonTest {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
         assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
         val lastDelta = deltas.receive(update, stepName)
-        val lastShortage = deltas.receive(update, stepName)
+        val lastShortage = shortages.receive(update, stepName)
 
 /*TODO: do we need these?
         totalPurchased += lastDelta
@@ -138,7 +138,7 @@ class ComparisonTest {
 */
         boringUpdate = null
         assertThat(lastDelta).`as`(stepName + " - deltas").isEqualTo(expectedDelta)
-        assertThat(lastDelta).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
+        assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
     }
 
     var totalPurchased = 0

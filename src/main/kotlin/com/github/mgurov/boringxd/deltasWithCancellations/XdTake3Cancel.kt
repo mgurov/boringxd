@@ -11,8 +11,8 @@ class XdTake3Cancel : Xd {
         checkTotalsDoNotDecrease(steps.lastOrNull()?.boring, update)
 
         val step = makeNextStep(
-            boring = update,
-            previous = Previous(steps.lastOrNull())
+                boring = update,
+                previous = Previous.of(steps.lastOrNull())
         )
         System.out.println("$step $message")
         steps.add(step)
@@ -23,58 +23,62 @@ class XdTake3Cancel : Xd {
 
 // a.k.a memory - what do we need to remember from the previous update
 data class Previous constructor(
-        val total: Int,
-        val supply: Int
+        val total: Int = 0,
+        val supply: Int = 0,
+        val cancelled: Int = 0
 ) {
-    constructor(previousStep: Step?) : this(
-            total = previousStep?.boring?.total ?: 0,
-            supply = previousStep?.boring?.supply() ?: 0
-    )
+    companion object {
+        fun of(previousStep: Step?): Previous {
+            if (previousStep == null) {
+                return Previous()
+            }
+            return with(previousStep.boring) {
+                Previous(
+                        total = total,
+                        supply = shipped + stock,
+                        cancelled = cancelled
+                )
+            }
+        }
+    }
 }
 
 data class Step(
-    val boring: BoringTotals,
-    val previous: Previous,
-    val coverLostStock: Int,
-    val coverNewRequests: Int,
-    val delta: Int
-) {
-    override fun toString(): String {
-        return "$boring, previous=$previous, coverLostStock=$coverLostStock, coverNewRequests=$coverNewRequests, delta=$delta"
-    }
-}
+        val boring: BoringTotals,
+        val previous: Previous,
+        val coverNewRequests: Int,
+        val coverLostStock: Int,
+        val cancellationDelta: Int,
+        val delta: Int
+)
 
 fun makeNextStep(
-    boring: BoringTotals,
-    previous: Previous
+        boring: BoringTotals,
+        previous: Previous
 ): Step {
-    val coverLostStock: Int
-    val coverNewRequests: Int
-    val delta: Int
 
-    val currentSupply = boring.supply()
+    val newSupply = boring.shipped + boring.stock
 
-    if (previous.supply > currentSupply && currentSupply < previous.total) {
-        //stock lost and it affects previously assumed to be enough
-        coverLostStock = Integer.min(previous.total, previous.supply) - currentSupply
+    val totalDemandDelta = boring.total - previous.total
+    val coverNewRequests = if (totalDemandDelta > 0) {
+        val supplyCoveringNewDemand = Math.max(0, newSupply + boring.cancelled - previous.total)
+        totalDemandDelta - supplyCoveringNewDemand
     } else {
-        coverLostStock = 0
+        0
     }
 
-    val newRequests = boring.total - previous.total
-    if (newRequests < 0) {
-        throw IllegalStateException("Unexpected negative requests $newRequests")
-    }
+    val coverLostStock = Math.max(0, previous.supply - newSupply)
 
-    coverNewRequests = Math.min(newRequests, boring.shortage())
+    val cancellationDelta = boring.cancelled - previous.cancelled
 
-    delta = coverLostStock + coverNewRequests
+    val delta = coverNewRequests + coverLostStock - cancellationDelta
 
     return Step(
-        boring = boring,
-        previous = previous,
-        coverLostStock = coverLostStock,
-        coverNewRequests = coverNewRequests,
-        delta = delta
+            boring = boring,
+            previous = previous,
+            coverNewRequests = coverNewRequests,
+            coverLostStock = coverLostStock,
+            cancellationDelta = cancellationDelta,
+            delta = delta
     )
 }

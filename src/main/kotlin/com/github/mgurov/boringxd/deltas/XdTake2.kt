@@ -28,7 +28,7 @@ data class Previous constructor(
 ) {
     constructor(previousStep: Step?) : this(
             total = previousStep?.boring?.total ?: 0,
-            supply = previousStep?.boring?.supply() ?: 0
+            supply = previousStep?.boring?.virtualSupply() ?: 0
     )
 }
 
@@ -52,7 +52,7 @@ fun makeNextStep(
     val coverNewRequests: Int
     val delta: Int
 
-    val currentSupply = boring.supply()
+    val currentSupply = boring.virtualSupply()
 
     if (previous.supply > currentSupply && currentSupply < previous.total) {
         //stock lost and it affects previously assumed to be enough

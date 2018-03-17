@@ -1,6 +1,6 @@
 package com.github.mgurov.boringxd
 
-import com.github.mgurov.boringxd.deltas.XdTake2
+import com.github.mgurov.boringxd.deltasWithCancellations.XdTake3Cancel
 import com.github.mgurov.boringxd.shortages.XdShortage
 import org.junit.Test
 
@@ -34,7 +34,7 @@ class ComparisonTest {
         then(expectedDelta = 5)
 
         whenMessage(BoringTotals(total = 7, stock = 2, cancelled = 3), "Cancel 3 of customer order")
-        then(expectedDelta = 0, withCancellations=-3) //TODO: -3 w/cancellation
+        then(expectedDelta = -3)
 
         whenMessage(BoringTotals(total = 9, stock = 2, shipped = 3, cancelled = 3), "order 2 + shipment")
         then(expectedDelta = 1, shouldBeFixedShortage = 2)
@@ -192,7 +192,7 @@ class ComparisonTest {
         then(expectedDelta = 0)
     }
 
-    val deltas = XdTake2() as Xd
+    val deltas = XdTake3Cancel() as Xd
     val shortages = XdShortage() as Xd
 
     var boringUpdate: BoringTotals? = null
@@ -207,7 +207,7 @@ class ComparisonTest {
         }
     }
 
-    fun then(expectedDelta: Int, withCancellations: Int? = null, shouldBeFixedShortage: Int? = null) {
+    fun then(expectedDelta: Int, shouldBeFixedShortage: Int? = null) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
         assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
         val lastDelta = deltas.receive(update, stepName)
@@ -224,8 +224,6 @@ class ComparisonTest {
         assertThat(lastDelta).`as`(stepName + " - deltas").isEqualTo(expectedDelta)
         if (shouldBeFixedShortage != null) {
             assertThat(lastShortage).`as`(stepName + " - shortages should be fixed eventually").isEqualTo(shouldBeFixedShortage)
-        } else if (withCancellations != null) {
-            assertThat(lastShortage).`as`(stepName + " - shortages already do good cancellations").isEqualTo(withCancellations)
         } else {
             assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
         }

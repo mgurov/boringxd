@@ -11,246 +11,302 @@ class DeltaFromBoringMessageTest {
     @Test
     fun `normal flow`() {
 
-        whenMessage(BoringTotals(total = 1), "shop order + 1")
+        whenBoringMessage(total = 1, message= "shop order + 1")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 2), "shop order + 1")
+        whenBoringMessage(total = 2, message= "shop order + 1")
         then(expectedDelta = 1)
+    }
+
+    @Test
+    fun `cancel`() {
+
+        whenBoringMessage(total = 1, message= "shop order + 1")
+        then(expectedDelta = 1)
+
+        whenBoringMessage(total = 1, cancelled = 1, message= "shop order - 1")
+        then(expectedDelta = -1)
+    }
+
+    @Test
+    fun `cancel and then order more with delivery`() {
+
+        whenBoringMessage(total = 1, message= "shop order 1")
+        then(expectedDelta = 1)
+
+        whenBoringMessage(total = 1, cancelled = 1, message= "cancel shop order 1")
+        then(expectedDelta = -1)
+
+        whenBoringMessage(total = 2, cancelled = 1, stock = 1, message= "shop order 2 stock ready")
+        then(expectedDelta = 0)
+    }
+
+    @Test
+    fun `cancellation with stock decrease`() {
+
+        whenBoringMessage(total = 10, stock = 5, message= "shop order 1")
+        then(expectedDelta = 5)
+
+        whenBoringMessage(total = 10, stock = 2, cancelled = 3, message= "drop cancel")
+        then(expectedDelta = 0)
+    }
+
+    @Test
+    fun `cancellation followed by stock decrease`() {
+
+        whenBoringMessage(total = 10, stock = 5, message= "shop order 1")
+        then(expectedDelta = 5)
+
+        whenBoringMessage(total = 10, stock = 5, cancelled = 3, message= "cancel")
+        then(expectedDelta = -3)
+
+        whenBoringMessage(total = 10, stock = 2, cancelled = 3, message= "drop")
+        then(expectedDelta = 3)
+    }
+
+    @Test
+    fun `cancellation with demand increase`() {
+
+        whenBoringMessage(total = 10, stock = 5, message= "shop order 1")
+        then(expectedDelta = 5)
+
+        whenBoringMessage(total = 12, stock = 5, cancelled = 3, message= "order and cancel")
+        then(expectedDelta = -1)
     }
 
     @Test
     fun `existing stock 2`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 2), "shop order + 1")
+        whenBoringMessage(total = 1, stock = 2, message= "shop order + 1")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 2, stock = 2), "shop order + 1")
+        whenBoringMessage(total = 2, stock = 2, message= "shop order + 1")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 3, stock = 2), "shop order + 1")
+        whenBoringMessage(total = 3, stock = 2, message= "shop order + 1")
         then(expectedDelta = 1)
     }
 
     @Test
     fun `shipment via our purchase`() {
 
-        whenMessage(BoringTotals(total = 1), "shop order + 1")
+        whenBoringMessage(total = 1, message= "shop order + 1")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 1, stock = 1), "stock via fulfillment")
+        whenBoringMessage(total = 1, stock = 1, message= "stock via fulfillment")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 1, stock = 0, shipped = 1), "shipped")
+        whenBoringMessage(total = 1, stock = 0, shipped = 1, message= "shipped")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `stock fluctuation down`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 1), "shop order + 1")
+        whenBoringMessage(total = 1, stock = 1, message= "shop order + 1")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 2, stock = 0), "stock lost + 1 shop order")
+        whenBoringMessage(total = 2, stock = 0, message= "stock lost + 1 shop order")
         then(expectedDelta = 2)
     }
 
     @Test
     fun `stock fluctuation down breakdown`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 1), "shop order + 1")
+        whenBoringMessage(total = 1, stock = 1, message= "shop order + 1")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 1, stock = 0), "stock lost")
+        whenBoringMessage(total = 1, stock = 0, message= "stock lost")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 2, stock = 0), "+ 1 shop order")
+        whenBoringMessage(total = 2, stock = 0, message= "+ 1 shop order")
         then(expectedDelta = 1)
     }
 
     @Test
     fun `stock fluctuation up`() {
-        whenMessage(BoringTotals(total = 1, stock = 0), "shop order + 1")
+        whenBoringMessage(total = 1, stock = 0, message= "shop order + 1")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 2, stock = 1), "stock found! + 1 shop order")
+        whenBoringMessage(total = 2, stock = 1, message= "stock found! + 1 shop order")
         then(expectedDelta = 1) //TODO: shouldn't go up when stock found and all of our orders fulfilled
     }
 
     @Test
     fun `stock fluctuation up breakdown`() {
-        whenMessage(BoringTotals(total = 1, stock = 0), "shop order + 1")
+        whenBoringMessage(total = 1, stock = 0, message= "shop order + 1")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 1, stock = 1), "stock found!")
+        whenBoringMessage(total = 1, stock = 1, message= "stock found!")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 2, stock = 1), "+ 1 shop order")
+        whenBoringMessage(total = 2, stock = 1, message= "+ 1 shop order")
         then(expectedDelta = 1) //TODO: only if not fulfilled
     }
 
     @Test
     fun `timing`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 0), "shop order + 1")
+        whenBoringMessage(total = 1, stock = 0, message= "shop order + 1")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 1, stock = 1), "received unexpected")
+        whenBoringMessage(total = 1, stock = 1, message= "received unexpected")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 1, stock = 1), "finally received update")
+        whenBoringMessage(total = 1, stock = 1, message= "finally received update")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 2, stock = 1), "+ 1 shop order")
+        whenBoringMessage(total = 2, stock = 1, message= "+ 1 shop order")
         then(expectedDelta = 1)
     }
 
     @Test
     fun `fluctuation down remembered and taken into account later`() {
 
-        whenMessage(BoringTotals(total = 2, stock = 0), "shop order + 2 no stock yet")
+        whenBoringMessage(total = 2, stock = 0, message= "shop order + 2 no stock yet")
         then(expectedDelta = 2)
 
-        whenMessage(BoringTotals(total = 2, stock = 1), "stock went up")
+        whenBoringMessage(total = 2, stock = 1, message= "stock went up")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 4, stock = 1), "shop order +2")
+        whenBoringMessage(total = 4, stock = 1, message= "shop order +2")
         then(expectedDelta = 2)
     }
 
     @Test
     fun `sanity check we get lots of stuff`() {
-        whenMessage(BoringTotals(total = 2, stock = 0), "shop order + 2 no stock yet")
+        whenBoringMessage(total = 2, stock = 0, message= "shop order + 2 no stock yet")
         then(expectedDelta = 2)
 
-        whenMessage(BoringTotals(total = 2, stock = 10), "stock went up")
+        whenBoringMessage(total = 2, stock = 10, message= "stock went up")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 15, stock = 10), "shop order +13")
+        whenBoringMessage(total = 15, stock = 10, message= "shop order +13")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 15, stock = 100), "stop up again")
+        whenBoringMessage(total = 15, stock = 100, message= "stop up again")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `stock lost and isn't enough anymore`() {
-        whenMessage(BoringTotals(total = 2, stock = 3), "enough stock")
+        whenBoringMessage(total = 2, stock = 3, message= "enough stock")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 2, stock = 1), "oops, one lost")
+        whenBoringMessage(total = 2, stock = 1, message= "oops, one lost")
         then(expectedDelta = 1)
     }
 
     @Test
     fun `stock lost and even more shortage`() {
-        whenMessage(BoringTotals(total = 5, stock = 3), "2 missing")
+        whenBoringMessage(total = 5, stock = 3, message= "2 missing")
         then(expectedDelta = 2)
 
-        whenMessage(BoringTotals(total = 5, stock = 1), "2 more missing")
+        whenBoringMessage(total = 5, stock = 1, message= "2 more missing")
         then(expectedDelta = 2)
     }
 
     @Test
     fun `should order new orders and decreased amount`() {
-        whenMessage(BoringTotals(total = 2, stock = 1), "one cdpa")
+        whenBoringMessage(total = 2, stock = 1, message= "one cdpa")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 3, stock = 0), "one more shop order and stock lost")
+        whenBoringMessage(total = 3, stock = 0, message= "one more shop order and stock lost")
         then(expectedDelta = 2)
     }
 
     @Test
     fun `stock lost not affecting previous shortage but does the new one`() {
-        whenMessage(BoringTotals(total = 2, stock = 4), "no shortage")
+        whenBoringMessage(total = 2, stock = 4, message= "no shortage")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 5, stock = 3), "shortage")
+        whenBoringMessage(total = 5, stock = 3, message= "shortage")
         then(expectedDelta = 2)
     }
 
     @Test
     fun `decrease supply over the demand doesn't affect bottomline`() {
-        whenMessage(BoringTotals(total = 2, stock = 4), "no shortage")
+        whenBoringMessage(total = 2, stock = 4, message= "no shortage")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 2, stock = 3), "still no shortage")
+        whenBoringMessage(total = 2, stock = 3, message= "still no shortage")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `stock found not affecting previous shortage but does the new one`() {
-        whenMessage(BoringTotals(total = 2, stock = 3), "no shortage")
+        whenBoringMessage(total = 2, stock = 3, message= "no shortage")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 5, stock = 4), "shortage")
+        whenBoringMessage(total = 5, stock = 4, message= "shortage")
         then(expectedDelta = 1)
     }
 
     @Test
     fun `same stock bit more requested`() {
-        whenMessage(BoringTotals(total = 2, stock = 3), "no shortage")
+        whenBoringMessage(total = 2, stock = 3, message= "no shortage")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 5, stock = 3), "shortage")
+        whenBoringMessage(total = 5, stock = 3, message= "shortage")
         then(expectedDelta = 2)
     }
 
     @Test
     fun `same stock still no shortage`() {
-        whenMessage(BoringTotals(total = 2, stock = 5), "no shortage")
+        whenBoringMessage(total = 2, stock = 5, message= "no shortage")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 5, stock = 5), "no shortage")
+        whenBoringMessage(total = 5, stock = 5, message= "no shortage")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `same stock low`() {
-        whenMessage(BoringTotals(total = 2, stock = 1), "shortage 1")
+        whenBoringMessage(total = 2, stock = 1, message= "shortage 1")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 5, stock = 1), "even more shortage")
+        whenBoringMessage(total = 5, stock = 1, message= "even more shortage")
         then(expectedDelta = 3)
     }
 
     @Test
     fun `growing stock low`() {
-        whenMessage(BoringTotals(total = 3, stock = 1), "shortage")
+        whenBoringMessage(total = 3, stock = 1, message= "shortage")
         then(expectedDelta = 2)
 
-        whenMessage(BoringTotals(total = 5, stock = 2), "even more shortage")
+        whenBoringMessage(total = 5, stock = 2, message= "even more shortage")
         then(expectedDelta = 2) //maybe the 1 was from the shortage
     }
 
     @Test
     fun `stop pops boring first delayed noticed xD`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 0), "customer order +1 -> cdpa")
+        whenBoringMessage(total = 1, stock = 0, message= "customer order +1 -> cdpa")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 1, stock = 1), "our stuff has been delivered but we aren't yet aware of that")
+        whenBoringMessage(total = 1, stock = 1, message= "our stuff has been delivered but we aren't yet aware of that")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 1, shipped = 1), "shipped")
+        whenBoringMessage(total = 1, shipped = 1, message= "shipped")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 1, shipped = 1), "now we've noticed")
+        whenBoringMessage(total = 1, shipped = 1, message= "now we've noticed")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 2, shipped = 1), "order +1")
+        whenBoringMessage(total = 2, shipped = 1, message= "order +1")
         then(expectedDelta = 1)
     }
 
     @Test
     fun `stop pops boring first delayed noticed xD 2`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 0), "customer order +1 -> cdpa")
+        whenBoringMessage(total = 1, stock = 0, message= "customer order +1 -> cdpa")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 2, stock = 1), "our stuff has been delivered but we aren't yet aware of that, should order just in case")
+        whenBoringMessage(total = 2, stock = 1, message= "our stuff has been delivered but we aren't yet aware of that, should order just in case")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 2, shipped = 1), "now we've noticed")
+        whenBoringMessage(total = 2, shipped = 1, message= "now we've noticed")
         then(expectedDelta = 0)
     }
 
@@ -258,13 +314,13 @@ class DeltaFromBoringMessageTest {
     @Test
     fun `should not think overshipped when notified bit late at xD`() {
 
-        whenMessage(BoringTotals(total = 1, stock = 0), "customer order +1 -> cdpa")
+        whenBoringMessage(total = 1, stock = 0, message= "customer order +1 -> cdpa")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 2, stock = 1), "our first piece has been delivered but we aren't yet aware of that")
+        whenBoringMessage(total = 2, stock = 1, message= "our first piece has been delivered but we aren't yet aware of that")
         then(expectedDelta = 1)
 
-        whenMessage(BoringTotals(total = 2, shipped = 1), "now we've noticed")
+        whenBoringMessage(total = 2, shipped = 1, message= "now we've noticed")
         then(expectedDelta = 0)
     }
 
@@ -273,87 +329,87 @@ class DeltaFromBoringMessageTest {
     @Test
     fun `Create create ship`() {
 
-        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 10, stock = 6), "customer order +3 stock +4 via our fulfillment")
+        whenBoringMessage(total = 10, stock = 6, message= "customer order +3 stock +4 via our fulfillment")
         then(expectedDelta = 3)
 
-        whenMessage(BoringTotals(total = 10, stock = 2, shipped = 5), "Shipment")
+        whenBoringMessage(total = 10, stock = 2, shipped = 5, message= "Shipment")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
+        whenBoringMessage(total = 10, stock = 0, shipped = 10, message= "final shipment")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `Create cancel ship`() {
 
-        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 7, stock = 2, cancelled = 3), "Cancel 3 of customer order")
-        then(expectedDelta = 0) //TODO: -3 w/cancellation
+        whenBoringMessage(total = 7, stock = 2, cancelled = 3, message= "Cancel 3 of customer order")
+        then(expectedDelta = -3)
 
-        whenMessage(BoringTotals(total = 7, stock = 0, cancelled = 3, shipped = 4), "Shipment")
+        whenBoringMessage(total = 7, stock = 0, cancelled = 3, shipped = 4, message= "Shipment")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `Create found_stock create ship`() {
 
-        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 10, stock = 6), "+3 customer order")
+        whenBoringMessage(total = 10, stock = 6, message= "+3 customer order")
         then(expectedDelta = 3)
 
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "Shipment")
+        whenBoringMessage(total = 10, stock = 0, shipped = 10, message= "Shipment")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `Create shipment timing_issue`() {
 
-        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 7, stock = 2, shipped = 2), "shipment bypassing stock")
+        whenBoringMessage(total = 7, stock = 2, shipped = 2, message= "shipment bypassing stock")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 4), "customer order + 3 and stock shipped")
+        whenBoringMessage(total = 10, stock = 0, shipped = 4, message= "customer order + 3 and stock shipped")
         then(expectedDelta = 3)
 
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
+        whenBoringMessage(total = 10, stock = 0, shipped = 10, message= "final Shipment")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `Received goods not registered yet`() {
 
-        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 10, stock = 6), "New customer order with the stock +4 unrelated to xD")
+        whenBoringMessage(total = 10, stock = 6, message= "New customer order with the stock +4 unrelated to xD")
         then(expectedDelta = 3)
 
-        whenMessage(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + noticed we've delivered that thing")
+        whenBoringMessage(total = 10, stock = 1, shipped = 5, message= "shipment + noticed we've delivered that thing")
         then(expectedDelta = 0)
 
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
+        whenBoringMessage(total = 10, stock = 0, shipped = 10, message= "final Shipment")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `Stock decreased`() {
 
-        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 10, stock = 0), "customer order +3 stock fluctuation -2")
+        whenBoringMessage(total = 10, stock = 0, message= "customer order +3 stock fluctuation -2")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
+        whenBoringMessage(total = 10, stock = 0, shipped = 10, message= "final shipment")
         then(expectedDelta = 0)
     }
 
@@ -363,7 +419,26 @@ class DeltaFromBoringMessageTest {
     var stepName = ""
     var totalPurchased = 0
 
-    fun whenMessage(update: BoringTotals, message: String = "") {
+    fun whenBoringMessage(
+            total: Int = 0,
+            stock: Int = 0,
+            shipped: Int = 0,
+            cancelled: Int = 0,
+            message: String = "") {
+
+        require(total >= shipped + cancelled)
+        
+        val cappedStock = Math.min(stock, total - shipped - cancelled)
+        val stockExcess = stock - cappedStock
+
+        val update = BoringTotals(
+                total = total,
+                stock = cappedStock,
+                shipped = shipped,
+                cancelled = cancelled,
+                stockExcess = stockExcess
+        )
+
         if (boringUpdate == null) {
             boringUpdate = update
             stepName = message
@@ -374,8 +449,10 @@ class DeltaFromBoringMessageTest {
 
     fun then(expectedDelta: Int) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
+
+        assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
+
         val lastDelta = xd.receive(update, stepName)
-        assertThat(lastDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
         totalPurchased += lastDelta
         assertThat(totalPurchased).`as`("Should not order more than total orders").isLessThanOrEqualTo(update.total)
         boringUpdate = null

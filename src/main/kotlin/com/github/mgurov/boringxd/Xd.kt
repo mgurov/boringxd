@@ -5,6 +5,11 @@ interface Xd {
 }
 
 fun checkTotalsDoNotDecrease(lastBoringMaybe: BoringTotals?, update: BoringTotals) {
+
+    require(update.total >= update.stock + update.shipped + update.cancelled) {
+        "supply cannot be higher than demand"
+    }
+
     val lastStep = lastBoringMaybe ?: BoringTotals()
     checkNoDecrease("total", lastStep.total, update.total)
     checkNoDecrease("shipped", lastStep.shipped, update.shipped)

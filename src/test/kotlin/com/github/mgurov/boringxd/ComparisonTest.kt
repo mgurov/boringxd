@@ -16,16 +16,14 @@ class ComparisonTest {
         whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 10, stock = 6), "customer order +3 stock +4 via our fulfillment")
-        fulfill(4)
+        //TODO: why updated xls orders 2 on shipped = 6?
+        whenMessage(BoringTotals(total = 10, stock = 7), "customer order +3 stock +4 via our fulfillment")
         then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 10, stock = 2, shipped = 5), "Shipment")
-        fulfill(1)
-        then(expectedDelta = 0)
+        then(expectedDelta = 0, shouldBeFixedShortage = -5)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
-        fulfill(3)
         then(expectedDelta = 0)
     }
 
@@ -38,41 +36,101 @@ class ComparisonTest {
         whenMessage(BoringTotals(total = 7, stock = 2, cancelled = 3), "Cancel 3 of customer order")
         then(expectedDelta = 0, withCancellations=-3) //TODO: -3 w/cancellation
 
-        whenMessage(BoringTotals(total = 9, stock = 2, cancelled = 3, shipped = 3), "Shipment")
-        then(expectedDelta = 1)
+        whenMessage(BoringTotals(total = 9, stock = 2, shipped = 3, cancelled = 3), "order 2 + shipment")
+        then(expectedDelta = 1, shouldBeFixedShortage = 2)
+
+        whenMessage(BoringTotals(total = 10, stock = 0,  shipped = 5, cancelled = 3), "order 3")
+        then(expectedDelta = 1, shouldBeFixedShortage = -2)
+
+        //TODO: check we reject negative shortage from boring
+        //TODO: excel has stock=4, but that should not even be sent to us by shortage as the supply is higher than demand
+        whenMessage(BoringTotals(total = 12, stock = 3,  shipped = 6, cancelled = 3), "order 4 (geleverde PO?)")
+        then(expectedDelta = 0)
+
+        whenMessage(BoringTotals(total = 13, stock = 3,  shipped = 6, cancelled = 3), "order 5 (NOS)")
+        then(expectedDelta = 1, shouldBeFixedShortage = -1)
     }
 
     @Test
     fun `Create found_stock create ship`() {
 
-        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        whenMessage(BoringTotals(total = 7, stock = 2), "order 1")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 10, stock = 6), "+3 customer order")
-        fulfill(1)
+        whenMessage(BoringTotals(total = 10, stock = 6), "order 2")
         then(expectedDelta = 3)
 
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "Shipment")
-        fulfill(4)
+        whenMessage(BoringTotals(total = 12, stock = 0, shipped = 9), "order 3")
+        then(expectedDelta = 2, shouldBeFixedShortage = -2)
+
+        whenMessage(BoringTotals(total = 14, stock = 1, shipped = 10), "order 4")
+        then(expectedDelta = 2, shouldBeFixedShortage = -1)
+
+        whenMessage(BoringTotals(total = 14, stock = 0, shipped = 10), "NOS check 1")
+        then(expectedDelta = 1, shouldBeFixedShortage = -1)
+
+        whenMessage(BoringTotals(total = 14, stock = 4, shipped = 10), "NOS check 2")
         then(expectedDelta = 0)
     }
 
     @Test
     fun `Create shipment timing_issue`() {
 
+        whenMessage(BoringTotals(total = 7, stock = 2), "order 1")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 2), "order 2 (& stock countdown)")
+        then(expectedDelta = 3)
+    }
+
+    @Test
+    fun `Create shipment timing_issue - order 2 (& stock countdown) alt (shipm 6)`() {
+
+        whenMessage(BoringTotals(total = 7, stock = 2), "order 1")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 8, stock = 0, shipped = 6), "- order 2 (& stock countdown) alt (shipm 6)")
+        then(expectedDelta = 1)
+    }
+
+    @Test
+    fun `Create shipment timing_issue - order 2 (partial stock countdown)`() {
+
+        whenMessage(BoringTotals(total = 7, stock = 2), "order 1")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 10, stock = 1, shipped = 2), "- order 2 (partial stock countdown)")
+        then(expectedDelta = 3)
+    }
+
+    @Test
+    fun `Create shipment timing_issue - order 2 (no stock countdown)`() {
+
+        whenMessage(BoringTotals(total = 7, stock = 2), "order 1")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 10, stock = 2, shipped = 2), "- order 2 (no stock countdown)")
+        then(expectedDelta = 3)
+    }
+
+    @Test
+    fun `Received goods not registered yet + NOS checks`() {
+
         whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 7, stock = 2, shipped = 2), "shipment bypassing stock")
-        fulfill(2)
-        then(expectedDelta = 0)
-
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 4), "customer order + 3 and stock shipped")
+        whenMessage(BoringTotals(total = 10, stock = 6), "order 2")
         then(expectedDelta = 3)
 
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
-        fulfill(6)
+        whenMessage(BoringTotals(total = 11, stock = 0, shipped = 7), "order 3")
+        then(expectedDelta = 1, shouldBeFixedShortage = -3)
+
+        whenMessage(BoringTotals(total = 11, stock = 4, shipped = 7), "stock check I")
         then(expectedDelta = 0)
+
+        whenMessage(BoringTotals(total = 11, stock = 3, shipped = 7), "stock check II")
+        then(expectedDelta = 1, shouldBeFixedShortage = -4)
+
     }
 
     @Test
@@ -81,15 +139,12 @@ class ComparisonTest {
         whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
         then(expectedDelta = 5)
 
-        whenMessage(BoringTotals(total = 10, stock = 6), "New customer order with the stock +4 unrelated to xD")
+        whenMessage(BoringTotals(total = 10, stock = 6), "order 2")
         then(expectedDelta = 3)
 
-        whenMessage(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + noticed we've delivered that thing")
-        then(expectedDelta = 0)
-
-        fulfill(4)
-        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
-        then(expectedDelta = 0)
+        //TODO: excel seems to be sensitive to shipped, e.g. 7 becomes delta 2 where should stay 1
+        whenMessage(BoringTotals(total = 11, stock = 0, shipped = 6), "order 3")
+        then(expectedDelta = 1, shouldBeFixedShortage = -3)
     }
 
     @Test
@@ -101,8 +156,39 @@ class ComparisonTest {
         whenMessage(BoringTotals(total = 10, stock = 0), "customer order +3 stock fluctuation -2")
         then(expectedDelta = 5)
 
-        fulfill(10)
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
+        then(expectedDelta = 0)
+    }
+
+    @Test
+    fun `Create shipment timing_issue old xls`() {
+
+        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 7, stock = 2, shipped = 2), "shipment bypassing stock")
+        then(expectedDelta = 0)
+
+        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 4), "customer order + 3 and stock shipped")
+        then(expectedDelta = 3, shouldBeFixedShortage = 1)
+
+        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
+        then(expectedDelta = 0)
+    }
+
+    @Test
+    fun `Received goods not registered yet - old xls`() {
+
+        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 10, stock = 6), "New customer order with the stock +4 unrelated to xD")
+        then(expectedDelta = 3)
+
+        whenMessage(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + noticed we've delivered that thing")
+        then(expectedDelta = 0, shouldBeFixedShortage = -4)
+
+        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
         then(expectedDelta = 0)
     }
 
@@ -121,27 +207,30 @@ class ComparisonTest {
         }
     }
 
-    private fun fulfill(ignore: Int) {
-    }
-
-    fun then(expectedDelta: Int, withCancellations: Int? = null) {
+    fun then(expectedDelta: Int, withCancellations: Int? = null, shouldBeFixedShortage: Int? = null) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
-        //assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
+        assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
         val lastDelta = deltas.receive(update, stepName)
         val lastShortage = shortages.receive(update, stepName)
 
-/*TODO: do we need these?
-        totalPurchased += lastDelta
-        assertThat(totalPurchased).`as`("Should not order more than total orders").isLessThanOrEqualTo(update.total)
-*/
-        boringUpdate = null
+        totalPurchasedDeltas += lastDelta
+        assertThat(totalPurchasedDeltas).`as`("Should not order more than total orders deltas").isLessThanOrEqualTo(update.total)
+
+        totalPurchasedShortages += lastShortage
+        assertThat(totalPurchasedShortages).`as`("Should not order more than total orders shortages").isLessThanOrEqualTo(update.total)
+
+        boringUpdate = null //reset
+
         assertThat(lastDelta).`as`(stepName + " - deltas").isEqualTo(expectedDelta)
-        if (withCancellations == null) {
-            assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
+        if (shouldBeFixedShortage != null) {
+            assertThat(lastShortage).`as`(stepName + " - shortages should be fixed eventually").isEqualTo(shouldBeFixedShortage)
+        } else if (withCancellations != null) {
+            assertThat(lastShortage).`as`(stepName + " - shortages already do good cancellations").isEqualTo(withCancellations)
         } else {
-            assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(withCancellations)
+            assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
         }
     }
 
-    var totalPurchased = 0
+    var totalPurchasedShortages = 0
+    var totalPurchasedDeltas = 0
 }

@@ -1,4 +1,4 @@
-package com.github.mgurov.boringxd.deltas
+package com.github.mgurov.boringxd.deltasWithCancellations
 
 import com.github.mgurov.boringxd.BoringTotals
 import com.github.mgurov.boringxd.Xd
@@ -16,16 +16,6 @@ class DeltaFromBoringMessageTest {
 
         whenMessage(BoringTotals(total = 2), "shop order + 1")
         then(expectedDelta = 1)
-    }
-
-    @Test
-    fun `cancellation`() {
-
-        whenMessage(BoringTotals(total = 1), "shop order + 1")
-        then(expectedDelta = 1)
-
-        whenMessage(BoringTotals(total = 1, cancelled = 1), "shop order + 1")
-        then(expectedDelta = -1)
     }
 
     @Test
@@ -48,7 +38,6 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 1)
 
         whenMessage(BoringTotals(total = 1, stock = 1), "stock via fulfillment")
-        fulfill(1)
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 1, stock = 0, shipped = 1), "shipped")
@@ -109,7 +98,6 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 1, stock = 1), "finally received update")
-        fulfill(1)
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 2, stock = 1), "+ 1 shop order")
@@ -246,7 +234,6 @@ class DeltaFromBoringMessageTest {
         whenMessage(BoringTotals(total = 1, shipped = 1), "shipped")
         then(expectedDelta = 0)
 
-        fulfill(1)
         whenMessage(BoringTotals(total = 1, shipped = 1), "now we've noticed")
         then(expectedDelta = 0)
 
@@ -263,7 +250,6 @@ class DeltaFromBoringMessageTest {
         whenMessage(BoringTotals(total = 2, stock = 1), "our stuff has been delivered but we aren't yet aware of that, should order just in case")
         then(expectedDelta = 1)
 
-        fulfill(1)
         whenMessage(BoringTotals(total = 2, shipped = 1), "now we've noticed")
         then(expectedDelta = 0)
     }
@@ -278,7 +264,6 @@ class DeltaFromBoringMessageTest {
         whenMessage(BoringTotals(total = 2, stock = 1), "our first piece has been delivered but we aren't yet aware of that")
         then(expectedDelta = 1)
 
-        fulfill(1)
         whenMessage(BoringTotals(total = 2, shipped = 1), "now we've noticed")
         then(expectedDelta = 0)
     }
@@ -292,15 +277,12 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 5)
 
         whenMessage(BoringTotals(total = 10, stock = 6), "customer order +3 stock +4 via our fulfillment")
-        fulfill(4)
         then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 10, stock = 2, shipped = 5), "Shipment")
-        fulfill(1)
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
-        fulfill(3)
         then(expectedDelta = 0)
     }
 
@@ -314,7 +296,6 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 0) //TODO: -3 w/cancellation
 
         whenMessage(BoringTotals(total = 7, stock = 0, cancelled = 3, shipped = 4), "Shipment")
-        fulfill(2)
         then(expectedDelta = 0)
     }
 
@@ -325,11 +306,9 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 5)
 
         whenMessage(BoringTotals(total = 10, stock = 6), "+3 customer order")
-        fulfill(1)
         then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "Shipment")
-        fulfill(4)
         then(expectedDelta = 0)
     }
 
@@ -340,14 +319,12 @@ class DeltaFromBoringMessageTest {
         then(expectedDelta = 5)
 
         whenMessage(BoringTotals(total = 7, stock = 2, shipped = 2), "shipment bypassing stock")
-        fulfill(2)
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 4), "customer order + 3 and stock shipped")
         then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
-        fulfill(6)
         then(expectedDelta = 0)
     }
 
@@ -360,11 +337,9 @@ class DeltaFromBoringMessageTest {
         whenMessage(BoringTotals(total = 10, stock = 6), "New customer order with the stock +4 unrelated to xD")
         then(expectedDelta = 3)
 
-        fulfill(4)
         whenMessage(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + noticed we've delivered that thing")
         then(expectedDelta = 0)
 
-        fulfill(4)
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
         then(expectedDelta = 0)
     }
@@ -378,13 +353,11 @@ class DeltaFromBoringMessageTest {
         whenMessage(BoringTotals(total = 10, stock = 0), "customer order +3 stock fluctuation -2")
         then(expectedDelta = 5)
 
-        fulfill(10)
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
         then(expectedDelta = 0)
     }
 
-    val xd = XdTake2() as Xd
-    //val xd = XdTake1() as Xd
+    val xd = XdTake3Cancel() as Xd
 
     var boringUpdate: BoringTotals? = null
     var stepName = ""
@@ -397,9 +370,6 @@ class DeltaFromBoringMessageTest {
         } else {
             throw IllegalStateException("Overriding boring state $boringUpdate with $update")
         }
-    }
-
-    private fun fulfill(ignore: Int) {
     }
 
     fun then(expectedDelta: Int) {

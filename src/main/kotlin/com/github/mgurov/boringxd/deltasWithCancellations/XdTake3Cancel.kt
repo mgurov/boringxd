@@ -61,7 +61,7 @@ fun makeNextStep(
 
     val totalDemandDelta = update.total - previous.total
     val coverNewRequests = if (totalDemandDelta > 0) {
-        val supplyCoveringNewDemand = Math.max(0, newSupply + update.cancelled - previous.total)
+        val supplyCoveringNewDemand = Math.max(0, newSupply + previous.cancelled - previous.total)
         totalDemandDelta - supplyCoveringNewDemand
     } else {
         0

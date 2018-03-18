@@ -227,6 +227,19 @@ class ComparisonTest {
         then(expectedDelta = 0)
     }
 
+    @Test
+    fun `cancel followed by order`() {
+
+        whenBoringMessage(total = 1, message= "shop order 1")
+        then(expectedDelta = 1)
+
+        whenBoringMessage(total = 1, cancelled = 1, message= "cancel")
+        then(expectedDelta = -1, shouldBeFixedShortage = 0)
+
+        whenBoringMessage(total = 2, cancelled = 1, message= "order more")
+        then(expectedDelta = 1, shouldBeFixedShortage = 0)
+    }
+
 
     val deltas = XdTake3Cancel() as Xd
     val shortages = XdShortage() as Xd

@@ -11,7 +11,7 @@ class XdTake3Cancel : Xd {
         checkTotalsDoNotDecrease(steps.lastOrNull()?.boring, update)
 
         val step = makeNextStep(
-                boring = update,
+                update = update,
                 previous = Previous.of(steps.lastOrNull())
         )
         System.out.println("$step $message")
@@ -53,15 +53,15 @@ data class Step(
 )
 
 fun makeNextStep(
-        boring: BoringTotals,
+        update: BoringTotals,
         previous: Previous
 ): Step {
 
-    val newSupply = boring.shipped + boring.stock
+    val newSupply = update.shipped + update.stock
 
-    val totalDemandDelta = boring.total - previous.total
+    val totalDemandDelta = update.total - previous.total
     val coverNewRequests = if (totalDemandDelta > 0) {
-        val supplyCoveringNewDemand = Math.max(0, newSupply + boring.cancelled - previous.total)
+        val supplyCoveringNewDemand = Math.max(0, newSupply + update.cancelled - previous.total)
         totalDemandDelta - supplyCoveringNewDemand
     } else {
         0
@@ -69,12 +69,12 @@ fun makeNextStep(
 
     val coverLostStock = Math.max(0, previous.supply - newSupply)
 
-    val cancellationDelta = boring.cancelled - previous.cancelled
+    val cancellationDelta = update.cancelled - previous.cancelled
 
     val delta = coverNewRequests + coverLostStock - cancellationDelta
 
     return Step(
-            boring = boring,
+            boring = update,
             previous = previous,
             coverNewRequests = coverNewRequests,
             coverLostStock = coverLostStock,

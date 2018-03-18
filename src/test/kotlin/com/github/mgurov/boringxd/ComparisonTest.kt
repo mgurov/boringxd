@@ -223,10 +223,7 @@ class ComparisonTest {
         whenBoringMessage(total = 1, message= "shop order 1")
         then(expectedDelta = 1)
 
-        whenBoringMessage(total = 1, cancelled = 1, message= "cancel shop order 1")
-        then(expectedDelta = -1, shouldBeFixedShortage = 0)
-
-        whenBoringMessage(total = 2, cancelled = 1, stock = 1, message= "shop order 2 stock ready")
+        whenBoringMessage(total = 2, shipped = 1, cancelled = 1, message= "order more and cancel")
         then(expectedDelta = 0)
     }
 

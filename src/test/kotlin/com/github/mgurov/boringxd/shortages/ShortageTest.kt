@@ -402,6 +402,23 @@ class ShortageTest {
     private fun fulfill(delta: Int) {
     }
 
+    fun whenBoringMessage(
+            total: Int = 0,
+            stock: Int = 0,
+            shipped: Int = 0,
+            cancelled: Int = 0,
+            message: String = "") {
+        whenMessage(
+                BoringTotals(
+                        total = total,
+                        stock =  stock,
+                        shipped = shipped,
+                        cancelled = cancelled
+                ),
+                message
+        )
+    }
+
     fun then(expectedPositiveDelta: Int? = null,
              expectedDelta: Int? = null,
              actualDelta: Int? = null,

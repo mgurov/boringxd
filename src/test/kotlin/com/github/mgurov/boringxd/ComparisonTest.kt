@@ -205,11 +205,54 @@ class ComparisonTest {
         then(expectedDelta = 0)
     }
 
+    //extra
+
+    @Test
+    fun `cancel`() {
+
+        whenBoringMessage(total = 1, message= "shop order + 1")
+        then(expectedDelta = 1)
+
+        whenBoringMessage(total = 1, cancelled = 1, message= "shop order - 1")
+        then(expectedDelta = -1, shouldBeFixedShortage = 0)
+    }
+
+    @Test
+    fun `cancel and then order more with delivery`() {
+
+        whenBoringMessage(total = 1, message= "shop order 1")
+        then(expectedDelta = 1)
+
+        whenBoringMessage(total = 1, cancelled = 1, message= "cancel shop order 1")
+        then(expectedDelta = -1, shouldBeFixedShortage = 0)
+
+        whenBoringMessage(total = 2, cancelled = 1, stock = 1, message= "shop order 2 stock ready")
+        then(expectedDelta = 0)
+    }
+
+
     val deltas = XdTake3Cancel() as Xd
     val shortages = XdShortage() as Xd
 
     var boringUpdate: BoringTotals? = null
     var stepName = ""
+
+    fun whenBoringMessage(
+            total: Int = 0,
+            stock: Int = 0,
+            shipped: Int = 0,
+            cancelled: Int = 0,
+            message: String = "") {
+        whenMessage(
+                BoringTotals(
+                        total = total,
+                        stock =  stock,
+                        shipped = shipped,
+                        cancelled = cancelled
+                ),
+                message
+        )
+    }
 
     fun whenMessage(update: BoringTotals, message: String = "") {
         if (boringUpdate == null) {

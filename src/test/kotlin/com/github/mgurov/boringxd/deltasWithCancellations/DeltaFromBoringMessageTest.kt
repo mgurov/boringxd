@@ -42,6 +42,16 @@ class DeltaFromBoringMessageTest {
     }
 
     @Test
+    fun `cancel and order same time when shipment arrived`() {
+
+        whenBoringMessage(total = 1, message= "shop order 1")
+        then(expectedDelta = 1)
+
+        whenBoringMessage(total = 2, cancelled = 1, shipped = 1, message= "cancel shop order 1")
+        then(expectedDelta = 0)
+    }
+
+    @Test
     fun `cancellation with stock decrease`() {
 
         whenBoringMessage(total = 10, stock = 5, message= "shop order 1")

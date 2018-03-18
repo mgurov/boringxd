@@ -5,7 +5,9 @@ import com.github.mgurov.boringxd.Xd
 import org.junit.Test
 
 import org.assertj.core.api.Assertions.*
+import org.junit.Ignore
 
+@Ignore
 class DeltaFromBoringMessageTest {
 
     @Test

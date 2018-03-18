@@ -161,6 +161,19 @@ class ComparisonTest {
     }
 
     @Test
+    fun `Stock decreased due to shipment`() {
+
+        whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")
+        then(expectedDelta = 5)
+
+        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 2), "customer order +3 stock fluctuation -2 upon shipment")
+        then(expectedDelta = 3)
+
+        whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
+        then(expectedDelta = 0)
+    }
+
+    @Test
     fun `Create shipment timing_issue old xls`() {
 
         whenMessage(BoringTotals(total = 7, stock = 2), "New customer order 7")

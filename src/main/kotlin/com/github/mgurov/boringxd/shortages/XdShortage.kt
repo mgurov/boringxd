@@ -5,14 +5,14 @@ import com.github.mgurov.boringxd.Xd
 import com.github.mgurov.boringxd.checkTotalsDoNotDecrease
 
 class XdShortage : Xd {
-    private val steps = mutableListOf<Step>()
+    private val steps = mutableListOf<ShortagesStep>()
 
     override fun receive(update: BoringTotals, message: String): Int {
         checkTotalsDoNotDecrease(steps.lastOrNull()?.boring, update)
 
         val step = makeNextStep(
             boring = update,
-            previous = Previous(steps.lastOrNull())
+            previous = Previous.of(steps.lastOrNull())
         )
         System.out.println("$step $message")
         steps.add(step)
@@ -23,53 +23,51 @@ class XdShortage : Xd {
 
 // a.k.a memory - what do we need to remember from the previous update
 data class Previous constructor(
-        val shipped: Int,
-        val stock: Int,
-        val totalCrossdocked: Int,
-        val absent: Boolean //TODO: means we should indeed reset.
+    val maxGeleverd: Int = 0,
+    val shipped: Int = 0,
+    val stock: Int = 0,
+    val purchaseTotal: Int = 0
 ){
-    constructor(previousStep: Step?) : this(
-            shipped = previousStep?.boring?.shipped ?: 0,
-            stock = previousStep?.boring?.stock ?: 0,
-            totalCrossdocked = (previousStep?.delta?: 0) + (previousStep?.previous?.totalCrossdocked?: 0),
-            absent = previousStep == null
-    )
+    companion object {
+        fun of(previousStep: ShortagesStep?): Previous {
+            if (null == previousStep) {
+                return Previous()
+            }
+
+            return Previous(
+                maxGeleverd = previousStep.maxGeleverd,
+                shipped = previousStep.boring.shipped,
+                stock = previousStep.boring.stock,
+                purchaseTotal = previousStep.delta + previousStep.previous.purchaseTotal
+            )
+
+        }
+    }
 }
 
-data class Step(
+data class ShortagesStep(
         val boring: BoringTotals,
-        val previous: Previous,
-        val delta: Int
-
+        val previous: Previous
 ) {
-    override fun toString(): String {
-        return "$boring, previous=$previous, delta=$delta"
+    val shortage = boring.rawShortage() //J
+    val purchaseTotal = previous.purchaseTotal //K
+    val stockIncrease = boring.stock - previous.stock //L
+    val shipmentIncrease = boring.shipped - previous.shipped //M
+    val formulaStockFactor = Math.max(0, stockIncrease + shipmentIncrease) //N
+    val blahSum = formulaStockFactor + previous.maxGeleverd // Pprev
+    val maxGeleverd = Math.min( purchaseTotal, blahSum ) //P
+    val delta = shortage - (purchaseTotal - maxGeleverd) //Q
+    init {
+        require(shortage >= 0) { "Shortage should be strictly positive here but got ${shortage}" }
     }
 }
 
 fun makeNextStep(
     boring: BoringTotals,
     previous: Previous
-) : Step {
-
-    val shortage = boring.rawShortage()
-    require(shortage >= 0) { "Shortage should be strictly positive here but got ${shortage}" }
-
-    val delta: Int
-
-    if (previous.absent || shortage == 0) {
-        delta = shortage
-    } else {
-        val deltaShipped = boring.shipped - previous.shipped;
-        val deltaStock = boring.stock - previous.stock;
-
-
-        //TODO: increase previous.totalCrossDock by delta
-
-        val deltaSupply = Integer.max(0, deltaShipped + deltaStock)
-
-        delta = shortage - previous.totalCrossdocked + deltaSupply
-    }
-
-    return Step(boring, previous, delta)
+) : ShortagesStep {
+    return ShortagesStep(
+        boring = boring,
+        previous = previous
+    )
 }

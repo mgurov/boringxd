@@ -57,28 +57,26 @@ fun makeNextStep(
         previous: Previous
 ): Step {
 
+    val newDemand = update.total - previous.total
+
     val newSupply = update.shipped + update.stock
 
-    val totalDemandDelta = update.total - previous.total
-    val coverNewRequests = if (totalDemandDelta > 0) {
-        val supplyCoveringNewDemand = Math.max(0, newSupply + previous.cancelled - previous.total)
-        totalDemandDelta - supplyCoveringNewDemand
-    } else {
-        0
-    }
+    val newDemandCoveredBySupplyAndCancel = Math.max(0, newSupply + previous.cancelled - previous.total)
 
-    val coverLostStock = Math.max(0, previous.supply - newSupply)
+    val purchaseForNewDemand = newDemand - newDemandCoveredBySupplyAndCancel
 
-    val cancellationDelta = update.cancelled - previous.cancelled
+    val purchaseForStockLost = Math.max(0, previous.supply - newSupply)
 
-    val delta = coverNewRequests + coverLostStock - cancellationDelta
+    val newCancellations = update.cancelled - previous.cancelled
+
+    val delta = purchaseForNewDemand + purchaseForStockLost - newCancellations
 
     return Step(
             boring = update,
             previous = previous,
-            coverNewRequests = coverNewRequests,
-            coverLostStock = coverLostStock,
-            cancellationDelta = cancellationDelta,
+            coverNewRequests = purchaseForNewDemand,
+            coverLostStock = purchaseForStockLost,
+            cancellationDelta = newCancellations,
             delta = delta
     )
 }

@@ -21,7 +21,7 @@ class ComparisonTest {
         then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 10, stock = 2, shipped = 5), "Shipment")
-        then(expectedDelta = 0, shouldBeFixedShortage = -5)
+        then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final shipment")
         then(expectedDelta = 0)
@@ -37,10 +37,10 @@ class ComparisonTest {
         then(expectedDelta = -3)
 
         whenMessage(BoringTotals(total = 9, stock = 2, shipped = 3, cancelled = 3), "order 2 + shipment")
-        then(expectedDelta = 1, shouldBeFixedShortage = 2)
+        then(expectedDelta = 1)
 
         whenMessage(BoringTotals(total = 10, stock = 0,  shipped = 5, cancelled = 3), "order 3")
-        then(expectedDelta = 1, shouldBeFixedShortage = -2)
+        then(expectedDelta = 1)
 
         //TODO: check we reject negative shortage from boring
         //TODO: excel has stock=4, but that should not even be sent to us by shortage as the supply is higher than demand
@@ -48,7 +48,7 @@ class ComparisonTest {
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 13, stock = 3,  shipped = 6, cancelled = 3), "order 5 (NOS)")
-        then(expectedDelta = 1, shouldBeFixedShortage = -1)
+        then(expectedDelta = 1)
     }
 
     @Test
@@ -61,13 +61,13 @@ class ComparisonTest {
         then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 12, stock = 0, shipped = 9), "order 3")
-        then(expectedDelta = 2, shouldBeFixedShortage = -2)
+        then(expectedDelta = 2)
 
         whenMessage(BoringTotals(total = 14, stock = 1, shipped = 10), "order 4")
-        then(expectedDelta = 2, shouldBeFixedShortage = -1)
+        then(expectedDelta = 2)
 
         whenMessage(BoringTotals(total = 14, stock = 0, shipped = 10), "NOS check 1")
-        then(expectedDelta = 1, shouldBeFixedShortage = -1)
+        then(expectedDelta = 1)
 
         whenMessage(BoringTotals(total = 14, stock = 4, shipped = 10), "NOS check 2")
         then(expectedDelta = 0)
@@ -123,13 +123,13 @@ class ComparisonTest {
         then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 11, stock = 0, shipped = 7), "order 3")
-        then(expectedDelta = 1, shouldBeFixedShortage = -3)
+        then(expectedDelta = 1)
 
         whenMessage(BoringTotals(total = 11, stock = 4, shipped = 7), "stock check I")
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 11, stock = 3, shipped = 7), "stock check II")
-        then(expectedDelta = 1, shouldBeFixedShortage = -4)
+        then(expectedDelta = 1)
 
     }
 
@@ -144,7 +144,7 @@ class ComparisonTest {
 
         //TODO: excel seems to be sensitive to shipped, e.g. 7 becomes delta 2 where should stay 1
         whenMessage(BoringTotals(total = 11, stock = 0, shipped = 6), "order 3")
-        then(expectedDelta = 1, shouldBeFixedShortage = -3)
+        then(expectedDelta = 1)
     }
 
     @Test
@@ -183,7 +183,7 @@ class ComparisonTest {
         then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 4), "customer order + 3 and stock shipped")
-        then(expectedDelta = 3, shouldBeFixedShortage = 1)
+        then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
         then(expectedDelta = 0)
@@ -199,7 +199,7 @@ class ComparisonTest {
         then(expectedDelta = 3)
 
         whenMessage(BoringTotals(total = 10, stock = 1, shipped = 5), "shipment + noticed we've delivered that thing")
-        then(expectedDelta = 0, shouldBeFixedShortage = -4)
+        then(expectedDelta = 0)
 
         whenMessage(BoringTotals(total = 10, stock = 0, shipped = 10), "final Shipment")
         then(expectedDelta = 0)
@@ -214,7 +214,7 @@ class ComparisonTest {
         then(expectedDelta = 1)
 
         whenBoringMessage(total = 1, cancelled = 1, message= "shop order - 1")
-        then(expectedDelta = -1, shouldBeFixedShortage = 0)
+        then(expectedDelta = -1)
     }
 
     @Test
@@ -234,10 +234,10 @@ class ComparisonTest {
         then(expectedDelta = 1)
 
         whenBoringMessage(total = 1, cancelled = 1, message= "cancel")
-        then(expectedDelta = -1, shouldBeFixedShortage = 0)
+        then(expectedDelta = -1)
 
         whenBoringMessage(total = 2, cancelled = 1, message= "order more")
-        then(expectedDelta = 1, shouldBeFixedShortage = 0)
+        then(expectedDelta = 1)
     }
 
 
@@ -273,24 +273,26 @@ class ComparisonTest {
         }
     }
 
-    fun then(expectedDelta: Int, shouldBeFixedShortage: Int? = null) {
+    fun then(expectedDelta: Int) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
         assertThat(expectedDelta).`as`("no point of ever ordering more than missing, right?").isLessThanOrEqualTo(update.shortage())
-        val lastDelta = deltas.receive(update, stepName)
-        val lastShortage = shortages.receive(update, stepName)
 
-        totalPurchasedDeltas += lastDelta
-        assertThat(totalPurchasedDeltas).`as`("Should not order more than total orders deltas").isLessThanOrEqualTo(update.total)
+        with(deltas) {
+            val lastDelta = receive(update, stepName)
+            totalPurchasedDeltas += lastDelta
+            assertThat(totalPurchasedDeltas).`as`("Should not order more than total orders deltas").isLessThanOrEqualTo(update.total)
+            assertThat(lastDelta).`as`(stepName + " - deltas").isEqualTo(expectedDelta)
+        }
 
-        totalPurchasedShortages += lastShortage
-        assertThat(totalPurchasedShortages).`as`("Should not order more than total orders shortages").isLessThanOrEqualTo(update.total)
+        with (shortages) {
+            val lastShortage = receive(update, stepName)
 
-        boringUpdate = null //reset
 
-        assertThat(lastDelta).`as`(stepName + " - deltas").isEqualTo(expectedDelta)
-        if (shouldBeFixedShortage != null) {
-            assertThat(lastShortage).`as`(stepName + " - shortages should be fixed eventually").isEqualTo(shouldBeFixedShortage)
-        } else {
+            totalPurchasedShortages += lastShortage
+            assertThat(totalPurchasedShortages).`as`("Should not order more than total orders shortages").isLessThanOrEqualTo(update.total)
+
+            boringUpdate = null //reset
+
             assertThat(lastShortage).`as`(stepName + " - shortages").isEqualTo(expectedDelta)
         }
     }

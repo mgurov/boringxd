@@ -68,60 +68,50 @@ fun makeNextStep(
 
     val redistribution = OldNewSupplyDistribution(previous.total, update.total)
 
-    redistribution.addCancelled(update.cancelled)
     redistribution.addShipped(update.shipped)
+    redistribution.addCancelled(update.cancelled)
     redistribution.addStock(update.stock)
-
-    val uncoveredNewDemand = redistribution.new.uncoveredDemand()
 
     val previousSupplyChange = redistribution.old.totalSupply() - previous.stock - previous.cancelled - previous.shipped
 
-    var (stockExcess, purchaseForStockDecrease) = if (previousSupplyChange > 0) {
-        Pair(previousSupplyChange, 0)
+    val stockLost : Int
+    val newStockExcess : Int
+    if (previousSupplyChange < 0) {
+        val p = -previousSupplyChange deductMin previous.stockExcess
+        stockLost = p.first
+        newStockExcess = p.second
     } else {
-        Pair(0, -previousSupplyChange)
+        stockLost = 0
+        val coveringStock = /*0 min */redistribution.old.stock - previous.stockExcess
+        newStockExcess = coveringStock minimal previousSupplyChange
     }
 
+    val oldCancellationIncrease = redistribution.old.cancelled - previous.cancelled
 
-    val oldStockChange = redistribution.old.stock - previous.stock
-    var oldCancellationIncrease = redistribution.old.cancelled - previous.cancelled
+    val cancelForPrevious = previous.purchased minimal oldCancellationIncrease
 
-    if (oldStockChange < 0 && oldCancellationIncrease > 0) {
-        val cancellationToStockAmmortization = -oldStockChange min oldCancellationIncrease
-        oldCancellationIncrease -= cancellationToStockAmmortization
-    }
+    val uncoveredNewDemand = redistribution.new.uncoveredDemand()
 
-    if (stockExcess > 0 && oldCancellationIncrease > 0) {
-        val cancellationToSupplyAmmortization = stockExcess min oldCancellationIncrease
-        //oldCancellationIncrease -= cancellationToSupplyAmmortization
-        stockExcess -= cancellationToSupplyAmmortization
-    }
-
-    stockExcess += previous.stockExcess
-
-
-    val cancelForPrevious = previous.purchased min oldCancellationIncrease
-
-    val lostStockAmortization = purchaseForStockDecrease min stockExcess
-
-    stockExcess -= lostStockAmortization
-    purchaseForStockDecrease -= lostStockAmortization
-
-
-
-    val delta = uncoveredNewDemand + purchaseForStockDecrease - cancelForPrevious
+    val delta = uncoveredNewDemand + stockLost - cancelForPrevious
 
 
     return Step(
         boring = update,
         previous = previous,
         coverNewRequests = uncoveredNewDemand,
-        coverLostStock = purchaseForStockDecrease,
+        coverLostStock = stockLost,
         cancellationDelta = cancelForPrevious,
         delta = delta,
-        stockExcess = stockExcess,
+        stockExcess = newStockExcess,
         totalPurchased = previous.purchased + delta
     )
+}
+
+private infix fun Int.deductMin(other: Int): Pair<Int, Int> {
+    require(this >= 0)
+    require(other >= 0)
+    val deduction = this minimal other
+    return this - deduction to other - deduction
 }
 
 data class OldNewSupplyDistribution(
@@ -161,7 +151,7 @@ data class SupplyDistribution(
     fun uncoveredDemand() = total - totalSupply()
 
     fun capValue(value: Int, target: KMutableProperty1<SupplyDistribution, Int>): Int {
-        val change = uncoveredDemand() min value
+        val change = uncoveredDemand() minimal value
         target.set(this, target.get(this) + change)
         return value - change
     }
@@ -183,6 +173,6 @@ private infix fun Int.max(i: Int): Int {
     return Math.max(this, i)
 }
 
-private infix fun Int.min(i: Int): Int {
+private infix fun Int.minimal(i: Int): Int {
     return Math.min(this, i)
 }

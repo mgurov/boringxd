@@ -47,10 +47,10 @@ class DeltaFromBoringMessageTestLostStockCap {
     fun `cancel and order same time when shipment arrived`() {
 
         whenBoringMessage(total = 1, message= "shop order 1")
-        then(expectedDelta = 1)
+        then(expectedDelta = 1, expectedStockExcess = 0)
 
         whenBoringMessage(total = 2, cancelled = 1, shipped = 1, message= "cancel shop order 1")
-        then(expectedDelta = 0)
+        then(expectedDelta = 0, expectedStockExcess = 0)
     }
 
     @Test

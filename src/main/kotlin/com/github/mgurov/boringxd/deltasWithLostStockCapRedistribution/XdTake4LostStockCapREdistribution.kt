@@ -72,23 +72,27 @@ fun makeNextStep(
     redistribution.addCancelled(update.cancelled)
     redistribution.addStock(update.stock)
 
+    val oldCancellationIncrease = redistribution.old.cancelled - previous.cancelled
+
+    val cancelForPrevious = previous.purchased min oldCancellationIncrease
+
+
     val previousSupplyChange = redistribution.old.totalSupply() - previous.stock - previous.cancelled - previous.shipped
 
     val stockLost : Int
     val newStockExcess : Int
     if (previousSupplyChange < 0) {
-        val p = -previousSupplyChange deductMin previous.stockExcess
+        val p = -previousSupplyChange deductMin previous.stockExcess //TODO: test prev. stock not lost partial consumption
         stockLost = p.first
         newStockExcess = p.second
     } else {
         stockLost = 0
-        val coveringStock = 0 max redistribution.old.stock - previous.stockExcess
-        newStockExcess = coveringStock min previousSupplyChange
+        val oldActiveStock = 0 max redistribution.old.stock - previous.stockExcess
+        val uncappedStockExcess = (oldActiveStock min previousSupplyChange) + previous.stockExcess
+        val deductedCancellations =  (uncappedStockExcess deductMin oldCancellationIncrease).first
+        newStockExcess = deductedCancellations min update.stock
     }
 
-    val oldCancellationIncrease = redistribution.old.cancelled - previous.cancelled
-
-    val cancelForPrevious = previous.purchased min oldCancellationIncrease
 
     val uncoveredNewDemand = redistribution.new.uncoveredDemand()
 

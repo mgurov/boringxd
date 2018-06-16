@@ -82,13 +82,13 @@ fun makeNextStep(
         newStockExcess = p.second
     } else {
         stockLost = 0
-        val coveringStock = /*0 min */redistribution.old.stock - previous.stockExcess
-        newStockExcess = coveringStock minimal previousSupplyChange
+        val coveringStock = 0 max redistribution.old.stock - previous.stockExcess
+        newStockExcess = coveringStock min previousSupplyChange
     }
 
     val oldCancellationIncrease = redistribution.old.cancelled - previous.cancelled
 
-    val cancelForPrevious = previous.purchased minimal oldCancellationIncrease
+    val cancelForPrevious = previous.purchased min oldCancellationIncrease
 
     val uncoveredNewDemand = redistribution.new.uncoveredDemand()
 
@@ -110,7 +110,7 @@ fun makeNextStep(
 private infix fun Int.deductMin(other: Int): Pair<Int, Int> {
     require(this >= 0)
     require(other >= 0)
-    val deduction = this minimal other
+    val deduction = this min other
     return this - deduction to other - deduction
 }
 
@@ -151,7 +151,7 @@ data class SupplyDistribution(
     fun uncoveredDemand() = total - totalSupply()
 
     fun capValue(value: Int, target: KMutableProperty1<SupplyDistribution, Int>): Int {
-        val change = uncoveredDemand() minimal value
+        val change = uncoveredDemand() min value
         target.set(this, target.get(this) + change)
         return value - change
     }
@@ -173,6 +173,6 @@ private infix fun Int.max(i: Int): Int {
     return Math.max(this, i)
 }
 
-private infix fun Int.minimal(i: Int): Int {
+private infix fun Int.min(i: Int): Int {
     return Math.min(this, i)
 }

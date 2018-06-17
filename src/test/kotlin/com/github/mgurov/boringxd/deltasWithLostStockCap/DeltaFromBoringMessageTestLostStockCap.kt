@@ -59,7 +59,7 @@ class DeltaFromBoringMessageTestLostStockCap {
         then(delta = 5, stockExcess = 0)
 
         whenBoringMessage(total = 10, stock = 2, cancelled = 3, message= "drop cancel")
-        then(delta = 0, stockExcess = 0) //TODO: this one is not working now
+        then(delta = 0, stockExcess = 0)
     }
 
     @Test
@@ -201,7 +201,7 @@ class DeltaFromBoringMessageTestLostStockCap {
         then(delta = 0, stockExcess = 1)
 
         whenBoringMessage(total = 1, stock = 1, message= "finally received update")
-        then(delta = 0, stockExcess = 1) //TODO: why reset? should've kept
+        then(delta = 0, stockExcess = 1)
 
         whenBoringMessage(total = 2, stock = 1, message= "+ 1 shop order")
         then(delta = 1, stockExcess = 1)
@@ -643,8 +643,6 @@ class DeltaFromBoringMessageTestLostStockCap {
         whenBoringMessage(total = 7, stock = 0, shipped = 1, message= "stock lost already accounted earlier")
         then(delta = 0, stockExcess = 0, purchased = 6)
     }
-
-    //TODO: decreased stock lost purchases should also reduce the stock excess
 
     val xd = XdTake4LostStockCapCellStatuses()
 

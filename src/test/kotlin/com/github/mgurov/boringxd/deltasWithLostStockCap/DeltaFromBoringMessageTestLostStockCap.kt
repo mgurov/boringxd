@@ -1,15 +1,13 @@
 package com.github.mgurov.boringxd.deltasWithLostStockCap
 
 import com.github.mgurov.boringxd.BoringTotals
-import com.github.mgurov.boringxd.deltasWithLostStockCapRedistribution.XdTake4LostStockCapREdistribution
+import com.github.mgurov.boringxd.deltasWithLostStockCapCellStatuses.XdTake4LostStockCapCellStatuses
 import org.junit.Test
 
 import org.assertj.core.api.Assertions.*
 import org.assertj.core.api.SoftAssertions.assertSoftly
 
 class DeltaFromBoringMessageTestLostStockCap {
-
-    val skipWip = true
 
     @Test
     fun `normal flow`() {
@@ -57,8 +55,6 @@ class DeltaFromBoringMessageTestLostStockCap {
     @Test
     fun `cancellation with stock decrease`() {
 
-        if (skipWip) return
-
         whenBoringMessage(total = 10, stock = 5, message= "shop order 1")
         then(delta = 5, stockExcess = 0)
 
@@ -68,8 +64,6 @@ class DeltaFromBoringMessageTestLostStockCap {
 
     @Test
     fun `should not cancel when in exchange for the stock`() {
-
-        if (skipWip) return
 
         whenBoringMessage(total = 2, stock = 1, message= "shop order 1")
         then(delta = 1, stockExcess = 0)
@@ -94,22 +88,31 @@ class DeltaFromBoringMessageTestLostStockCap {
     @Test
     fun `cancellation followed by stock decrease`() {
 
-        if (skipWip) return
-
         whenBoringMessage(total = 10, stock = 5, message= "shop order 1")
-        then(delta = 5, stockExcess = 0)
+        then(delta = 5, stockExcess = 0, purchased = 5)
 
         whenBoringMessage(total = 10, stock = 5, cancelled = 3, message= "cancel")
-        then(delta = -3, stockExcess = 0)
+        then(delta = -3, stockExcess = 0, purchased = 2)
 
         whenBoringMessage(total = 10, stock = 2, cancelled = 3, message= "drop")
-        then(delta = 0, stockExcess = 0)
+        then(delta = 3, stockExcess = 0, purchased = 5)
+    }
+
+    @Test
+    fun `cancellation followed by stock decrease smaller`() {
+
+        whenBoringMessage(total = 2, stock = 1, message= "shop order 1")
+        then(delta = 1, stockExcess = 0, purchased = 1)
+
+        whenBoringMessage(total = 2, stock = 1, cancelled = 1, message= "cancel")
+        then(delta = -1, stockExcess = 0, purchased = 0)
+
+        whenBoringMessage(total = 2, stock = 0, cancelled = 1, message= "drop")
+        then(delta = 1, stockExcess = 0, purchased = 1)
     }
 
     @Test
     fun `cancellation with demand increase`() {
-
-        if (skipWip) return
 
         whenBoringMessage(total = 10, stock = 5, message= "shop order 1")
         then(delta = 5)
@@ -319,13 +322,11 @@ class DeltaFromBoringMessageTestLostStockCap {
     @Test
     fun `growing stock low`() {
 
-        if (skipWip) return
-
         whenBoringMessage(total = 3, stock = 1, message= "shortage")
-        then(delta = 2)
+        then(delta = 2, purchased = 2)
 
         whenBoringMessage(total = 5, stock = 2, message= "even more shortage")
-        then(delta = 3, stockExcess = 1) //maybe the 1 was from the shortage
+        then(delta = 2, stockExcess = 1, purchased = 4)
     }
 
     @Test
@@ -379,25 +380,24 @@ class DeltaFromBoringMessageTestLostStockCap {
     @Test
     fun `Create create ship`() {
 
-        if (skipWip) return
+        //TODO: look at this carefully.
+        //also what happens on consequent increases, will stock excess play the correct role or not?
 
         whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(delta = 5)
 
         whenBoringMessage(total = 10, stock = 6, message= "customer order +3 stock +4 via our fulfillment")
-        then(delta = 3, stockExcess = 4)
+        then(delta = 3, stockExcess = 4, purchased = 8)
 
         whenBoringMessage(total = 10, stock = 2, shipped = 5, message= "Shipment")
-        then(delta = 0, stockExcess = 0)
+        then(delta = 0, stockExcess = 2, purchased = 5)
 
         whenBoringMessage(total = 10, stock = 0, shipped = 10, message= "final shipment")
-        then(delta = 0, stockExcess = 0)
+        then(delta = 0, stockExcess = 0, purchased = 0)
     }
 
     @Test
     fun `Create cancel ship`() {
-
-        if (skipWip) return
 
         whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(delta = 5)
@@ -413,10 +413,10 @@ class DeltaFromBoringMessageTestLostStockCap {
     fun `Create found_stock create ship`() {
 
         whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
-        then(delta = 5)
+        then(delta = 5, purchased = 5)
 
         whenBoringMessage(total = 10, stock = 6, message= "+3 customer order")
-        then(delta = 3, stockExcess = 4)
+        then(delta = 3, stockExcess = 4, purchased = 8)
 
         whenBoringMessage(total = 10, stock = 0, shipped = 10, message= "Shipment")
         then(delta = 0)
@@ -441,19 +441,17 @@ class DeltaFromBoringMessageTestLostStockCap {
     @Test
     fun `Received goods not registered yet`() {
 
-        if (skipWip) return
-
         whenBoringMessage(total = 7, stock = 2, message= "New customer order 7")
         then(delta = 5)
 
         whenBoringMessage(total = 10, stock = 6, message= "New customer order with the stock +4 unrelated to xD")
-        then(delta = 3, stockExcess = 4)
+        then(delta = 3, stockExcess = 4, purchased = 8)
 
         whenBoringMessage(total = 10, stock = 1, shipped = 5, message= "shipment + noticed we've delivered that thing")
-        then(delta = 0, stockExcess = 0)
+        then(delta = 0, stockExcess = 1, purchased = 5)
 
         whenBoringMessage(total = 10, stock = 0, shipped = 10, message= "final Shipment")
-        then(delta = 0)
+        then(delta = 0, stockExcess = 0, purchased = 0)
     }
 
     @Test
@@ -564,8 +562,6 @@ class DeltaFromBoringMessageTestLostStockCap {
     @Test
     fun `Stock coverage stays intact upon cancellation 3`() {
 
-        if (skipWip) return
-
         whenBoringMessage(total = 2, stock = 1, message= "New customer order covered by stock")
         then(delta = 1, stockExcess = 0)
 
@@ -636,21 +632,21 @@ class DeltaFromBoringMessageTestLostStockCap {
     fun `stock decrease before shipment issues delta still`() {
 
         whenBoringMessage(total = 7, stock = 2, message= "New customer order")
-        then(delta = 5, stockExcess = 0)
+        then(delta = 5, stockExcess = 0, purchased = 5)
 
         whenBoringMessage(total = 7, stock = 1, shipped = 0, message= "stock decrease just before shipment")
-        then(delta = 1, stockExcess = 0)
+        then(delta = 1, stockExcess = 0, purchased = 6)
 
         whenBoringMessage(total = 7, stock = 1, shipped = 1, message= "delayed shipment")
-        then(delta = 0, stockExcess = 1)
+        then(delta = 0, stockExcess = 1, purchased = 6)
 
         whenBoringMessage(total = 7, stock = 0, shipped = 1, message= "stock lost already accounted earlier")
-        then(delta = 0, stockExcess = 0)
+        then(delta = 0, stockExcess = 0, purchased = 6)
     }
 
     //TODO: decreased stock lost purchases should also reduce the stock excess
 
-    val xd = XdTake4LostStockCapREdistribution()
+    val xd = XdTake4LostStockCapCellStatuses()
 
     var boringUpdate: BoringTotals? = null
     var stepName = ""
@@ -686,7 +682,8 @@ class DeltaFromBoringMessageTestLostStockCap {
 
     fun then(
         delta: Int,
-        stockExcess: Int = 0
+        stockExcess: Int = 0,
+        purchased: Int? = null
     ) {
         val update = boringUpdate ?: throw IllegalStateException("no boring update yet")
 
@@ -699,9 +696,15 @@ class DeltaFromBoringMessageTestLostStockCap {
 
         assertSoftly {softly ->
 
-            softly.assertThat(xd.steps.last().stockExcess).`as`(stepName + " – stock excess").isEqualTo(stockExcess)
-
             softly.assertThat(lastDelta).`as`(stepName + " – delta").isEqualTo(delta)
+
+            val lastStep = xd.steps.last()
+
+            softly.assertThat(lastStep.stockExcess).`as`(stepName + " – stock excess").isEqualTo(stockExcess)
+
+            if (purchased != null) {
+                softly.assertThat(lastStep.totalPurchased).`as`(stepName + " – purchased").isEqualTo(purchased)
+            }
         }
 
 
